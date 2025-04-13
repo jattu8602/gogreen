@@ -1,16 +1,24 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   FlatList,
+  Modal,
+  TextInput,
+  Switch,
+  Platform,
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
+import { Picker } from '@react-native-picker/picker'
+import DateTimePicker from '@react-native-community/datetimepicker'
+import * as DocumentPicker from 'expo-document-picker'
 
 import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
+import { supabase } from '@/lib/supabase'
 
 // Task type definition
 type Task = {
@@ -18,8 +26,18 @@ type Task = {
   title: string
   time?: string
   color: string
-  hasReminder?: boolean
-  hasAttachment?: boolean
+  has_reminder?: boolean
+  has_attachment?: boolean
+  priority: 'high' | 'medium' | 'low'
+  notes?: string
+  is_daily?: boolean
+  end_date?: string
+  is_completed?: boolean
+  year: number
+  month: number
+  day: number
+  reminder_frequency?: string
+  attachment_url?: string
 }
 
 // Define the day type for better TypeScript support
@@ -32,32 +50,44 @@ type CalendarDay = {
   hasEvents?: boolean
 }
 
-export default function Calendar() {
-  // Sample date - using a fixed date to match the image
-  const [selectedMonth, setSelectedMonth] = useState(10) // November (0-indexed)
-  const [selectedYear, setSelectedYear] = useState(2022)
-  const [selectedDay, setSelectedDay] = useState(13)
+const CalendarScreen = () => {
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [selectedDay, setSelectedDay] = useState(new Date().getDate())
+  const [showYearPicker, setShowYearPicker] = useState(false)
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [showTimePicker, setShowTimePicker] = useState(false)
+  const [newTask, setNewTask] = useState<Partial<Task>>({
+    priority: 'medium',
+    is_daily: false,
+  })
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [years, setYears] = useState<number[]>([])
+  const [selectedTime, setSelectedTime] = useState(new Date())
 
-  // Sample tasks
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      title: 'Supermarket shopping list.',
-      time: '12:30',
-      color: '#a29bfe',
-      hasReminder: true,
-      hasAttachment: true,
-    },
-    { id: '2', title: 'Send Email to Tim.', color: '#ff7675' },
-    {
-      id: '3',
-      title: 'Have a glass of water.',
-      time: '14:45',
-      color: '#ffeaa7',
-      hasReminder: true,
-      hasAttachment: true,
-    },
-  ])
+  // Generate years for picker
+  useEffect(() => {
+    const currentYear = new Date().getFullYear()
+    const yearsArray = Array.from({ length: 20 }, (_, i) => currentYear - 10 + i)
+    setYears(yearsArray)
+    fetchTasks()
+  }, [selectedYear, selectedMonth])
+
+  // Fetch tasks from Supabase
+  const fetchTasks = async () => {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('year', selectedYear)
+      .eq('month', selectedMonth)
+
+    if (error) {
+      console.error('Error fetching tasks:', error)
+      return
+    }
+
+    setTasks(data || [])
+  }
 
   // Generate calendar days
   const getDaysInMonth = (month: number, year: number) => {
@@ -176,7 +206,7 @@ export default function Calendar() {
         {item.time && (
           <View style={styles.taskMeta}>
             <ThemedText style={styles.taskTime}>{item.time}</ThemedText>
-            {item.hasReminder && (
+            {item.has_reminder && (
               <Ionicons
                 name="notifications-outline"
                 size={16}
@@ -184,7 +214,7 @@ export default function Calendar() {
                 style={styles.taskIcon}
               />
             )}
-            {item.hasAttachment && (
+            {item.has_attachment && (
               <Ionicons
                 name="attach"
                 size={16}
@@ -206,14 +236,247 @@ export default function Calendar() {
     </View>
   )
 
+  const renderMonthSelector = () => (
+    <View style={styles.monthSelector}>
+      <TouchableOpacity onPress={() => setShowYearPicker(true)}>
+        <ThemedText style={styles.yearText}>{selectedYear}</ThemedText>
+      </TouchableOpacity>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.monthScroll}
+      >
+        {Array.from({ length: 12 }, (_, i) => (
+          <TouchableOpacity
+            key={i}
+            style={[
+              styles.monthButton,
+              selectedMonth === i && styles.selectedMonth
+            ]}
+            onPress={() => setSelectedMonth(i)}
+          >
+            <ThemedText style={[
+              styles.monthText,
+              selectedMonth === i && styles.selectedMonthText
+            ]}>
+              {monthNames[i].substring(0, 3)}
+            </ThemedText>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  )
+
+  const renderYearPicker = () => (
+    <Modal
+      visible={showYearPicker}
+      transparent
+      animationType="slide"
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={selectedYear}
+            onValueChange={(value) => {
+              setSelectedYear(value)
+              setShowYearPicker(false)
+            }}
+          >
+            {years.map((year) => (
+              <Picker.Item key={year} label={year.toString()} value={year} />
+            ))}
+          </Picker>
+        </View>
+      </View>
+    </Modal>
+  )
+
+  const handleTimeChange = (event: any, selectedDate?: Date) => {
+    setShowTimePicker(false)
+    if (selectedDate) {
+      setSelectedTime(selectedDate)
+      setNewTask({
+        ...newTask,
+        time: selectedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      })
+    }
+  }
+
+  const handleAttachment = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      })
+
+      if (result.canceled) return
+
+      const file = result.assets[0]
+      if (!file) return
+
+      // Create a FormData object for the file
+      const formData = new FormData()
+      formData.append('file', {
+        uri: file.uri,
+        type: file.mimeType,
+        name: file.name,
+      } as any)
+
+      // Upload file to Supabase storage
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `${selectedYear}/${selectedMonth}/${selectedDay}/${fileName}`
+
+      const { data, error } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, formData)
+
+      if (error) throw error
+
+      setNewTask({
+        ...newTask,
+        has_attachment: true,
+        attachment_url: data.path,
+      })
+    } catch (error) {
+      console.error('Error picking document:', error)
+    }
+  }
+
+  const saveTask = async () => {
+    const taskToSave = {
+      ...newTask,
+      year: selectedYear,
+      month: selectedMonth,
+      day: selectedDay,
+      is_completed: false,
+    }
+
+    const { error } = await supabase.from('tasks').insert([taskToSave])
+
+    if (error) {
+      console.error('Error saving task:', error)
+      return
+    }
+
+    setShowTaskModal(false)
+    setNewTask({ priority: 'medium', is_daily: false })
+    fetchTasks()
+  }
+
+  const renderTaskModal = () => (
+    <Modal
+      visible={showTaskModal}
+      transparent
+      animationType="slide"
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.taskModalContent}>
+          <ThemedText style={styles.modalTitle}>Add New Task</ThemedText>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Task Title"
+            value={newTask.title}
+            onChangeText={(text) => setNewTask({ ...newTask, title: text })}
+          />
+
+          <View style={styles.priorityContainer}>
+            <ThemedText>Priority:</ThemedText>
+            <View style={styles.priorityButtons}>
+              {['high', 'medium', 'low'].map((priority) => (
+                <TouchableOpacity
+                  key={priority}
+                  style={[
+                    styles.priorityButton,
+                    newTask.priority === priority && styles.selectedPriority
+                  ]}
+                  onPress={() => setNewTask({ ...newTask, priority: priority as Task['priority'] })}
+                >
+                  <ThemedText>{priority}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.timeButton}
+            onPress={() => setShowTimePicker(true)}
+          >
+            <Ionicons name="time-outline" size={20} color="#666" />
+            <ThemedText style={styles.timeButtonText}>
+              {newTask.time || 'Set Time'}
+            </ThemedText>
+          </TouchableOpacity>
+
+          {showTimePicker && (
+            <DateTimePicker
+              value={selectedTime}
+              mode="time"
+              onChange={handleTimeChange}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              is24Hour={true}
+            />
+          )}
+
+          <View style={styles.switchContainer}>
+            <ThemedText>Daily Task</ThemedText>
+            <Switch
+              value={newTask.is_daily}
+              onValueChange={(value) => setNewTask({ ...newTask, is_daily: value })}
+            />
+          </View>
+
+          {newTask.is_daily && (
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => {
+                // Implement date picker for end date
+              }}
+            >
+              <Ionicons name="calendar-outline" size={20} color="#666" />
+              <ThemedText style={styles.dateButtonText}>
+                {newTask.end_date || 'Set End Date'}
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+
+          <TextInput
+            style={[styles.input, styles.notesInput]}
+            placeholder="Notes"
+            multiline
+            value={newTask.notes}
+            onChangeText={(text) => setNewTask({ ...newTask, notes: text })}
+          />
+
+          <TouchableOpacity
+            style={styles.attachmentButton}
+            onPress={handleAttachment}
+          >
+            <Ionicons name="attach-outline" size={20} color="#666" />
+            <ThemedText style={styles.attachmentButtonText}>
+              {newTask.has_attachment ? 'Change Attachment' : 'Add Attachment'}
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={saveTask}
+          >
+            <ThemedText style={styles.saveButtonText}>Save Task</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  )
+
   return (
     <ThemedView style={styles.container}>
       <StatusBar style="auto" />
 
-      <View style={styles.header}>
-        <ThemedText style={styles.headerTitle}>Calendar</ThemedText>
-        <ThemedText style={styles.headerSubtitle}>View</ThemedText>
-      </View>
+      {renderMonthSelector()}
+      {renderYearPicker()}
+      {renderTaskModal()}
 
       <View style={styles.calendarCard}>
         <View style={styles.monthSelector}>
@@ -251,12 +514,17 @@ export default function Calendar() {
         style={styles.tasksList}
       />
 
-      <TouchableOpacity style={styles.fab}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setShowTaskModal(true)}
+      >
         <Ionicons name="add" size={32} color="white" />
       </TouchableOpacity>
     </ThemedView>
   )
 }
+
+export default CalendarScreen
 
 const styles = StyleSheet.create({
   container: {
@@ -418,5 +686,139 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
+  },
+  yearText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginRight: 16,
+  },
+  monthScroll: {
+    flex: 1,
+  },
+  monthButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+    borderRadius: 8,
+  },
+  selectedMonth: {
+    backgroundColor: '#74b9ff',
+  },
+  monthText: {
+    fontSize: 16,
+  },
+  selectedMonthText: {
+    color: 'white',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  pickerContainer: {
+    backgroundColor: 'white',
+    width: '80%',
+    borderRadius: 12,
+    padding: 16,
+  },
+  taskModalContent: {
+    backgroundColor: 'white',
+    width: '80%',
+    borderRadius: 12,
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  priorityContainer: {
+    marginBottom: 16,
+  },
+  priorityButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  priorityButton: {
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  selectedPriority: {
+    backgroundColor: '#74b9ff',
+    borderColor: '#74b9ff',
+  },
+  timeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  timeButtonText: {
+    marginLeft: 8,
+    color: '#666',
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  dateButtonText: {
+    marginLeft: 8,
+    color: '#666',
+  },
+  notesInput: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  attachmentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  attachmentButtonText: {
+    marginLeft: 8,
+    color: '#666',
+  },
+  saveButton: {
+    backgroundColor: '#74b9ff',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  timePicker: {
+    width: '100%',
+    height: 200,
   },
 })

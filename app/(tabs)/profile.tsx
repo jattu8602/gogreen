@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   Alert,
+  Dimensions,
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { useAuth } from '@clerk/clerk-expo'
@@ -13,17 +14,86 @@ import { Ionicons } from '@expo/vector-icons'
 
 import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
+import { supabase } from '@/lib/supabase'
 
-export default function Profile() {
+type Task = {
+  id: string
+  title: string
+  time?: string
+  color: string
+  hasReminder?: boolean
+  hasAttachment?: boolean
+  priority: 'high' | 'medium' | 'low'
+  notes?: string
+  isDaily?: boolean
+  endDate?: string
+  isCompleted?: boolean
+}
+
+type AnalyticsData = {
+  labels: string[]
+  data: number[]
+}
+
+const { width } = Dimensions.get('window')
+const CHART_HEIGHT = 200
+const BAR_WIDTH = 30
+const SPACING = 10
+
+const CustomBarChart = ({ data }: { data: AnalyticsData }) => {
+  const maxValue = Math.max(...data.data)
+  const scale = CHART_HEIGHT / maxValue
+
+  return (
+    <View style={styles.chartContainer}>
+      {data.data.map((value, index) => {
+        const barHeight = value * scale
+        return (
+          <View key={index} style={styles.barContainer}>
+            <View style={[styles.bar, { height: barHeight }]} />
+            <ThemedText style={styles.barLabel}>{data.labels[index]}</ThemedText>
+          </View>
+        )
+      })}
+    </View>
+  )
+}
+
+const ProfileScreen = () => {
   const { isLoaded, signOut, userId } = useAuth()
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [dailyTasks, setDailyTasks] = useState<Task[]>([])
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    data: [3, 5, 2, 4, 6, 1, 4],
+  })
 
-  // Sample user data
-  const user = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    completedTasks: 42,
-    pendingTasks: 7,
+  useEffect(() => {
+    fetchDailyTasks()
+    fetchAnalytics()
+  }, [])
+
+  const fetchDailyTasks = async () => {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('isDaily', true)
+
+    if (error) {
+      console.error('Error fetching daily tasks:', error)
+      return
+    }
+
+    setDailyTasks(data || [])
+  }
+
+  const fetchAnalytics = async () => {
+    // This is a simplified version. In a real app, you'd fetch actual data
+    const mockData = {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      data: [3, 5, 2, 4, 6, 1, 4],
+    }
+    setAnalyticsData(mockData)
   }
 
   const handleSignOut = async () => {
@@ -58,6 +128,28 @@ export default function Profile() {
     )
   }
 
+  const renderDailyTask = (task: Task) => (
+    <View key={task.id} style={styles.dailyTaskItem}>
+      <View style={styles.dailyTaskContent}>
+        <ThemedText style={styles.dailyTaskTitle}>{task.title}</ThemedText>
+        {task.time && (
+          <View style={styles.taskMeta}>
+            <Ionicons name="time-outline" size={16} color="#666" />
+            <ThemedText style={styles.taskTime}>{task.time}</ThemedText>
+          </View>
+        )}
+      </View>
+      <TouchableOpacity
+        style={styles.editButton}
+        onPress={() => {
+          // Implement edit functionality
+        }}
+      >
+        <Ionicons name="create-outline" size={20} color="#666" />
+      </TouchableOpacity>
+    </View>
+  )
+
   return (
     <ThemedView style={styles.container}>
       <StatusBar style="auto" />
@@ -80,42 +172,27 @@ export default function Profile() {
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              {/* Replace with actual user avatar image */}
-              <ThemedText style={styles.avatarText}>
-                {user.name.charAt(0)}
-              </ThemedText>
+              <ThemedText style={styles.avatarText}>D</ThemedText>
             </View>
           </View>
-          <ThemedText style={styles.userName}>{user.name}</ThemedText>
-          <ThemedText style={styles.userEmail}>{user.email}</ThemedText>
-          {userId && (
-            <ThemedText style={styles.userId}>User ID: {userId}</ThemedText>
-          )}
-        </View>
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statsCard}>
-            <ThemedText style={styles.statsNumber}>
-              {user.completedTasks}
-            </ThemedText>
-            <ThemedText style={styles.statsLabel}>Completed Tasks</ThemedText>
-          </View>
-          <View style={styles.statsCard}>
-            <ThemedText style={styles.statsNumber}>
-              {user.pendingTasks}
-            </ThemedText>
-            <ThemedText style={styles.statsLabel}>Pending Tasks</ThemedText>
-          </View>
+          <ThemedText style={styles.userName}>DaisyDo User</ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Saved Items</ThemedText>
-          <ThemedText style={styles.emptyText}>No saved items yet</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Work-Life Balance</ThemedText>
+          <CustomBarChart data={analyticsData} />
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>Daily Routine Tasks</ThemedText>
+          {dailyTasks.map(renderDailyTask)}
         </View>
       </ScrollView>
     </ThemedView>
   )
 }
+
+export default ProfileScreen
 
 const styles = StyleSheet.create({
   container: {
@@ -157,7 +234,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#74b9ff',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -171,37 +248,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  userEmail: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 4,
-  },
-  userId: {
-    fontSize: 12,
-    color: '#999',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: 20,
-    paddingHorizontal: 20,
-  },
-  statsCard: {
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    width: '45%',
-  },
-  statsNumber: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  statsLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
   section: {
     padding: 20,
   },
@@ -210,9 +256,51 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
   },
-  emptyText: {
-    textAlign: 'center',
-    fontStyle: 'italic',
-    color: '#999',
+  chartContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    height: CHART_HEIGHT,
+    paddingVertical: 20,
+  },
+  barContainer: {
+    alignItems: 'center',
+  },
+  bar: {
+    width: BAR_WIDTH,
+    backgroundColor: '#74b9ff',
+    borderRadius: 4,
+  },
+  barLabel: {
+    marginTop: 8,
+    fontSize: 12,
+  },
+  dailyTaskItem: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  dailyTaskContent: {
+    flex: 1,
+  },
+  dailyTaskTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  taskMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskTime: {
+    marginLeft: 4,
+    color: '#666',
+  },
+  editButton: {
+    padding: 8,
   },
 })
+
