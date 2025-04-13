@@ -372,99 +372,181 @@ const CalendarScreen = () => {
     >
       <View style={styles.modalContainer}>
         <View style={styles.taskModalContent}>
-          <ThemedText style={styles.modalTitle}>Add New Task</ThemedText>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Task Title"
-            value={newTask.title}
-            onChangeText={(text) => setNewTask({ ...newTask, title: text })}
-          />
-
-          <View style={styles.priorityContainer}>
-            <ThemedText>Priority:</ThemedText>
-            <View style={styles.priorityButtons}>
-              {['high', 'medium', 'low'].map((priority) => (
-                <TouchableOpacity
-                  key={priority}
-                  style={[
-                    styles.priorityButton,
-                    newTask.priority === priority && styles.selectedPriority
-                  ]}
-                  onPress={() => setNewTask({ ...newTask, priority: priority as Task['priority'] })}
-                >
-                  <ThemedText>{priority}</ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.timeButton}
-            onPress={() => setShowTimePicker(true)}
-          >
-            <Ionicons name="time-outline" size={20} color="#666" />
-            <ThemedText style={styles.timeButtonText}>
-              {newTask.time || 'Set Time'}
-            </ThemedText>
-          </TouchableOpacity>
-
-          {showTimePicker && (
-            <DateTimePicker
-              value={selectedTime}
-              mode="time"
-              onChange={handleTimeChange}
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              is24Hour={true}
-            />
-          )}
-
-          <View style={styles.switchContainer}>
-            <ThemedText>Daily Task</ThemedText>
-            <Switch
-              value={newTask.is_daily}
-              onValueChange={(value) => setNewTask({ ...newTask, is_daily: value })}
-            />
-          </View>
-
-          {newTask.is_daily && (
+          <View style={styles.modalHeader}>
+            <ThemedText style={styles.modalTitle}>Add New Task</ThemedText>
             <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => {
-                // Implement date picker for end date
-              }}
+              style={styles.closeButton}
+              onPress={() => setShowTaskModal(false)}
             >
-              <Ionicons name="calendar-outline" size={20} color="#666" />
-              <ThemedText style={styles.dateButtonText}>
-                {newTask.end_date || 'Set End Date'}
+              <Ionicons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalScrollView}>
+            <TextInput
+              style={styles.input}
+              placeholder="Task Title"
+              value={newTask.title}
+              onChangeText={(text) => setNewTask({ ...newTask, title: text })}
+            />
+
+            <View style={styles.dateSelectionContainer}>
+              <ThemedText style={styles.sectionTitle}>Select Date</ThemedText>
+              <View style={styles.yearMonthSelector}>
+                <TouchableOpacity
+                  style={styles.yearButton}
+                  onPress={() => setShowYearPicker(true)}
+                >
+                  <ThemedText style={styles.yearButtonText}>{selectedYear}</ThemedText>
+                  <Ionicons name="chevron-down" size={16} color="#666" />
+                </TouchableOpacity>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.monthScroll}
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      style={[
+                        styles.monthButton,
+                        selectedMonth === i && styles.selectedMonth,
+                      ]}
+                      onPress={() => setSelectedMonth(i)}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.monthText,
+                          selectedMonth === i && styles.selectedMonthText,
+                        ]}
+                      >
+                        {monthNames[i].substring(0, 3)}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.calendarGrid}>
+                {weekDays.map((day) => (
+                  <View key={day} style={styles.weekDayCell}>
+                    <ThemedText style={styles.weekDayText}>{day}</ThemedText>
+                  </View>
+                ))}
+                {days.map((day, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.dayCell,
+                      day.isCurrentMonth && styles.currentMonthDay,
+                      day.day === selectedDay && styles.selectedDay,
+                    ]}
+                    onPress={() => {
+                      setSelectedDay(day.day)
+                      setSelectedMonth(day.month)
+                      setSelectedYear(day.year)
+                    }}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.dayText,
+                        !day.isCurrentMonth && styles.otherMonthDay,
+                        day.day === selectedDay && styles.selectedDayText,
+                      ]}
+                    >
+                      {day.day}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.priorityContainer}>
+              <ThemedText>Priority:</ThemedText>
+              <View style={styles.priorityButtons}>
+                {['high', 'medium', 'low'].map((priority) => (
+                  <TouchableOpacity
+                    key={priority}
+                    style={[
+                      styles.priorityButton,
+                      newTask.priority === priority && styles.selectedPriority
+                    ]}
+                    onPress={() => setNewTask({ ...newTask, priority: priority as Task['priority'] })}
+                  >
+                    <ThemedText>{priority}</ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.timeButton}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <Ionicons name="time-outline" size={20} color="#666" />
+              <ThemedText style={styles.timeButtonText}>
+                {newTask.time || 'Set Time'}
               </ThemedText>
             </TouchableOpacity>
-          )}
 
-          <TextInput
-            style={[styles.input, styles.notesInput]}
-            placeholder="Notes"
-            multiline
-            value={newTask.notes}
-            onChangeText={(text) => setNewTask({ ...newTask, notes: text })}
-          />
+            {showTimePicker && (
+              <DateTimePicker
+                value={selectedTime}
+                mode="time"
+                onChange={handleTimeChange}
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                is24Hour={true}
+              />
+            )}
 
-          <TouchableOpacity
-            style={styles.attachmentButton}
-            onPress={handleAttachment}
-          >
-            <Ionicons name="attach-outline" size={20} color="#666" />
-            <ThemedText style={styles.attachmentButtonText}>
-              {newTask.has_attachment ? 'Change Attachment' : 'Add Attachment'}
-            </ThemedText>
-          </TouchableOpacity>
+            <View style={styles.switchContainer}>
+              <ThemedText>Daily Task</ThemedText>
+              <Switch
+                value={newTask.is_daily}
+                onValueChange={(value) => setNewTask({ ...newTask, is_daily: value })}
+              />
+            </View>
 
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={saveTask}
-          >
-            <ThemedText style={styles.saveButtonText}>Save Task</ThemedText>
-          </TouchableOpacity>
+            {newTask.is_daily && (
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => {
+                  // Implement date picker for end date
+                }}
+              >
+                <Ionicons name="calendar-outline" size={20} color="#666" />
+                <ThemedText style={styles.dateButtonText}>
+                  {newTask.end_date || 'Set End Date'}
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+
+            <TextInput
+              style={[styles.input, styles.notesInput]}
+              placeholder="Notes"
+              multiline
+              value={newTask.notes}
+              onChangeText={(text) => setNewTask({ ...newTask, notes: text })}
+            />
+
+            <TouchableOpacity
+              style={styles.attachmentButton}
+              onPress={handleAttachment}
+            >
+              <Ionicons name="attach-outline" size={20} color="#666" />
+              <ThemedText style={styles.attachmentButtonText}>
+                {newTask.has_attachment ? 'Change Attachment' : 'Add Attachment'}
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={saveTask}
+            >
+              <ThemedText style={styles.saveButtonText}>Save Task</ThemedText>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -728,17 +810,49 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+  closeButton: {
+    padding: 8,
+  },
+  modalScrollView: {
+    maxHeight: '80%',
+  },
+  dateSelectionContainer: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  yearMonthSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  yearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: '#f0f0f0',
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+    marginRight: 10,
+  },
+  yearButtonText: {
+    fontSize: 16,
+    marginRight: 4,
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 10,
   },
   priorityContainer: {
     marginBottom: 16,
@@ -820,5 +934,30 @@ const styles = StyleSheet.create({
   timePicker: {
     width: '100%',
     height: 200,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  selectedDay: {
+    backgroundColor: '#74b9ff',
+    borderRadius: 8,
+  },
+  selectedDayText: {
+    color: 'white',
+  },
+  currentMonthDay: {
+    backgroundColor: 'white',
+  },
+  otherMonthDay: {
+    color: '#aaa',
   },
 })
