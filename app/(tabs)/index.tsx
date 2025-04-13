@@ -127,7 +127,6 @@ const CalendarScreen = () => {
         year: selectedYear,
         isCurrentMonth: true,
         isSelected: i === selectedDay,
-        hasEvents: [11, 12, 23].includes(i), // Days with dot indicators
       })
     }
 
@@ -135,8 +134,7 @@ const CalendarScreen = () => {
     const nextMonth = selectedMonth === 11 ? 0 : selectedMonth + 1
     const nextMonthYear = selectedMonth === 11 ? selectedYear + 1 : selectedYear
     const totalDaysShown = 42 // 6 rows of 7 days
-    const remainingDays =
-      totalDaysShown - prevMonthDays.length - currentMonthDays.length
+    const remainingDays = totalDaysShown - prevMonthDays.length - currentMonthDays.length
 
     const nextMonthDays = []
     for (let i = 1; i <= remainingDays; i++) {
@@ -169,26 +167,29 @@ const CalendarScreen = () => {
   ]
 
   const renderDay = (day: CalendarDay, index: number) => {
+    const isSelected = day.day === selectedDay && day.month === selectedMonth && day.year === selectedYear
     const textColor = day.isCurrentMonth
-      ? day.isSelected
+      ? isSelected
         ? 'white'
         : 'black'
       : '#aaa'
-    const backgroundColor = day.isSelected ? '#74b9ff' : 'transparent'
+    const backgroundColor = isSelected ? '#74b9ff' : 'transparent'
 
     return (
-      <View key={index} style={styles.dayCell}>
-        <View style={[styles.dayContainer, { backgroundColor }]}>
-          <ThemedText style={[styles.dayText, { color: textColor }]}>
-            {day.day}
-          </ThemedText>
-          {day.hasEvents && (
-            <View style={styles.dotContainer}>
-              <View style={styles.dot} />
-            </View>
-          )}
-        </View>
-      </View>
+      <TouchableOpacity
+        key={index}
+        style={[styles.dayCell, { backgroundColor }]}
+        onPress={() => {
+          setSelectedDay(day.day)
+          setSelectedMonth(day.month)
+          setSelectedYear(day.year)
+        }}
+        activeOpacity={0.7}
+      >
+        <ThemedText style={[styles.dayText, { color: textColor }]}>
+          {day.day}
+        </ThemedText>
+      </TouchableOpacity>
     )
   }
 
@@ -202,7 +203,15 @@ const CalendarScreen = () => {
     <View style={styles.taskItem}>
       <View style={[styles.taskColorBar, { backgroundColor: item.color }]} />
       <View style={styles.taskContent}>
-        <ThemedText style={styles.taskTitle}>{item.title}</ThemedText>
+        <View style={styles.taskHeader}>
+          <ThemedText style={styles.taskTitle}>{item.title}</ThemedText>
+          {item.is_daily && (
+            <View style={styles.dailyBadge}>
+              <Ionicons name="repeat" size={16} color="#666" />
+              <ThemedText style={styles.dailyText}>Daily</ThemedText>
+            </View>
+          )}
+        </View>
         {item.time && (
           <View style={styles.taskMeta}>
             <ThemedText style={styles.taskTime}>{item.time}</ThemedText>
@@ -238,32 +247,9 @@ const CalendarScreen = () => {
 
   const renderMonthSelector = () => (
     <View style={styles.monthSelector}>
-      <TouchableOpacity onPress={() => setShowYearPicker(true)}>
-        <ThemedText style={styles.yearText}>{selectedYear}</ThemedText>
-      </TouchableOpacity>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.monthScroll}
-      >
-        {Array.from({ length: 12 }, (_, i) => (
-          <TouchableOpacity
-            key={i}
-            style={[
-              styles.monthButton,
-              selectedMonth === i && styles.selectedMonth
-            ]}
-            onPress={() => setSelectedMonth(i)}
-          >
-            <ThemedText style={[
-              styles.monthText,
-              selectedMonth === i && styles.selectedMonthText
-            ]}>
-              {monthNames[i].substring(0, 3)}
-            </ThemedText>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <ThemedText style={styles.monthYearText}>
+        {monthNames[selectedMonth]}, {selectedYear}
+      </ThemedText>
     </View>
   )
 
@@ -314,29 +300,38 @@ const CalendarScreen = () => {
       const file = result.assets[0]
       if (!file) return
 
+      // Create a unique file path with user's ID
+      const fileExt = file.name.split('.').pop() || 'file'
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `${selectedYear}/${selectedMonth}/${selectedDay}/${fileName}`
+
       // Create a FormData object for the file
       const formData = new FormData()
       formData.append('file', {
         uri: file.uri,
-        type: file.mimeType,
+        type: file.mimeType || 'application/octet-stream',
         name: file.name,
       } as any)
 
       // Upload file to Supabase storage
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Math.random()}.${fileExt}`
-      const filePath = `${selectedYear}/${selectedMonth}/${selectedDay}/${fileName}`
-
       const { data, error } = await supabase.storage
         .from('attachments')
         .upload(filePath, formData)
 
-      if (error) throw error
+      if (error) {
+        console.error('Error uploading file:', error)
+        return
+      }
+
+      // Get the public URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from('attachments')
+        .getPublicUrl(filePath)
 
       setNewTask({
         ...newTask,
         has_attachment: true,
-        attachment_url: data.path,
+        attachment_url: publicUrl || '',
       })
     } catch (error) {
       console.error('Error picking document:', error)
@@ -552,6 +547,22 @@ const CalendarScreen = () => {
     </Modal>
   )
 
+  const getFilteredTasks = () => {
+    return tasks.filter(task => {
+      if (task.is_daily) {
+        // Show daily tasks for all dates
+        return true
+      } else {
+        // Show non-daily tasks only for the selected date
+        return (
+          task.year === selectedYear &&
+          task.month === selectedMonth &&
+          task.day === selectedDay
+        )
+      }
+    })
+  }
+
   return (
     <ThemedView style={styles.container}>
       <StatusBar style="auto" />
@@ -562,21 +573,9 @@ const CalendarScreen = () => {
 
       <View style={styles.calendarCard}>
         <View style={styles.monthSelector}>
-          <TouchableOpacity>
-            <Ionicons name="chevron-back" size={24} color="#555" />
-          </TouchableOpacity>
-          <ThemedText style={styles.monthYearText}>NOV, 2022</ThemedText>
-          <TouchableOpacity>
-            <Ionicons name="chevron-forward" size={24} color="#555" />
-          </TouchableOpacity>
-          <View style={styles.monthControls}>
-            <TouchableOpacity>
-              <Ionicons name="chevron-down" size={24} color="#555" />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Ionicons name="ellipsis-vertical" size={24} color="#555" />
-            </TouchableOpacity>
-          </View>
+          <ThemedText style={styles.monthYearText}>
+            {monthNames[selectedMonth]}, {selectedYear}
+          </ThemedText>
         </View>
 
         <View style={styles.calendar}>
@@ -590,7 +589,7 @@ const CalendarScreen = () => {
       </View>
 
       <FlatList
-        data={tasks}
+        data={getFilteredTasks()}
         renderItem={renderTask}
         keyExtractor={(item) => item.id}
         style={styles.tasksList}
@@ -613,6 +612,8 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 0,
     backgroundColor: '#FFF8F0',
+    paddingTop: 30,
+
   },
   header: {
     paddingTop: 20,
@@ -643,6 +644,7 @@ const styles = StyleSheet.create({
   monthSelector: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
@@ -650,12 +652,6 @@ const styles = StyleSheet.create({
   monthYearText: {
     fontSize: 18,
     fontWeight: 'bold',
-    flex: 1,
-    marginLeft: 8,
-  },
-  monthControls: {
-    flexDirection: 'row',
-    gap: 10,
   },
   calendar: {
     padding: 8,
@@ -683,17 +679,11 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 2,
-  },
-  dayContainer: {
-    width: '80%',
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 100,
+    borderRadius: 8,
+    margin: 2,
   },
   dayText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '500',
   },
   dotContainer: {
@@ -732,10 +722,15 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
   },
+  taskHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   taskTitle: {
     fontSize: 16,
     fontWeight: '500',
-    marginBottom: 4,
   },
   taskMeta: {
     flexDirection: 'row',
@@ -959,5 +954,18 @@ const styles = StyleSheet.create({
   },
   otherMonthDay: {
     color: '#aaa',
+  },
+  dailyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  dailyText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
   },
 })
