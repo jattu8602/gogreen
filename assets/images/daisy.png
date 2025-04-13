@@ -1,0 +1,9 @@
+This is a placeholder for the daisy.png file.
+
+To create an actual daisy icon as a PNG:
+1. Use the SVG we created (daisy.svg) and convert it using an online tool like https://svgtopng.com/
+2. Or create a daisy icon using an image editor like Photoshop or GIMP
+3. Save it as a PNG file
+4. Place it in this directory (assets/images/daisy.png)
+
+For now, you can use any daisy flower emoji (🌼) or other flower image as a temporary placeholder.
