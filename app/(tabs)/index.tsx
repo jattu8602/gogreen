@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   View,
   StyleSheet,
@@ -9,6 +9,8 @@ import {
   TextInput,
   Switch,
   Platform,
+  Animated,
+  Alert,
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
@@ -19,6 +21,13 @@ import * as DocumentPicker from 'expo-document-picker'
 import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
 import { supabase } from '@/lib/supabase'
+import {
+  TaskModal,
+  DailyTaskModal,
+  NoteModal,
+  MediaModal,
+  DocumentModal,
+} from '@/components/TaskOptions'
 
 // Task type definition
 type Task = {
@@ -64,11 +73,24 @@ const CalendarScreen = () => {
   const [tasks, setTasks] = useState<Task[]>([])
   const [years, setYears] = useState<number[]>([])
   const [selectedTime, setSelectedTime] = useState(new Date())
+  const [fabOpen, setFabOpen] = useState(false)
+  const [showDailyTaskModal, setShowDailyTaskModal] = useState(false)
+  const [showNoteModal, setShowNoteModal] = useState(false)
+  const [showMediaModal, setShowMediaModal] = useState(false)
+  const [showDocumentModal, setShowDocumentModal] = useState(false)
+  const [note, setNote] = useState({ title: '', description: '' })
+  const [mediaCaption, setMediaCaption] = useState('')
+  const [documentCaption, setDocumentCaption] = useState('')
+
+  const animation = useRef(new Animated.Value(0)).current
 
   // Generate years for picker
   useEffect(() => {
     const currentYear = new Date().getFullYear()
-    const yearsArray = Array.from({ length: 20 }, (_, i) => currentYear - 10 + i)
+    const yearsArray = Array.from(
+      { length: 20 },
+      (_, i) => currentYear - 10 + i
+    )
     setYears(yearsArray)
     fetchTasks()
   }, [selectedYear, selectedMonth])
@@ -134,7 +156,8 @@ const CalendarScreen = () => {
     const nextMonth = selectedMonth === 11 ? 0 : selectedMonth + 1
     const nextMonthYear = selectedMonth === 11 ? selectedYear + 1 : selectedYear
     const totalDaysShown = 42 // 6 rows of 7 days
-    const remainingDays = totalDaysShown - prevMonthDays.length - currentMonthDays.length
+    const remainingDays =
+      totalDaysShown - prevMonthDays.length - currentMonthDays.length
 
     const nextMonthDays = []
     for (let i = 1; i <= remainingDays; i++) {
@@ -167,7 +190,10 @@ const CalendarScreen = () => {
   ]
 
   const renderDay = (day: CalendarDay, index: number) => {
-    const isSelected = day.day === selectedDay && day.month === selectedMonth && day.year === selectedYear
+    const isSelected =
+      day.day === selectedDay &&
+      day.month === selectedMonth &&
+      day.year === selectedYear
     const textColor = day.isCurrentMonth
       ? isSelected
         ? 'white'
@@ -254,11 +280,7 @@ const CalendarScreen = () => {
   )
 
   const renderYearPicker = () => (
-    <Modal
-      visible={showYearPicker}
-      transparent
-      animationType="slide"
-    >
+    <Modal visible={showYearPicker} transparent animationType="slide">
       <View style={styles.modalContainer}>
         <View style={styles.pickerContainer}>
           <Picker
@@ -283,7 +305,10 @@ const CalendarScreen = () => {
       setSelectedTime(selectedDate)
       setNewTask({
         ...newTask,
-        time: selectedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: selectedDate.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
       })
     }
   }
@@ -324,9 +349,9 @@ const CalendarScreen = () => {
       }
 
       // Get the public URL for the uploaded file
-      const { data: { publicUrl } } = supabase.storage
-        .from('attachments')
-        .getPublicUrl(filePath)
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('attachments').getPublicUrl(filePath)
 
       setNewTask({
         ...newTask,
@@ -338,9 +363,9 @@ const CalendarScreen = () => {
     }
   }
 
-  const saveTask = async () => {
+  const handleSaveTask = async (task: Partial<Task>) => {
     const taskToSave = {
-      ...newTask,
+      ...task,
       year: selectedYear,
       month: selectedMonth,
       day: selectedDay,
@@ -359,196 +384,80 @@ const CalendarScreen = () => {
     fetchTasks()
   }
 
-  const renderTaskModal = () => (
-    <Modal
-      visible={showTaskModal}
-      transparent
-      animationType="slide"
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.taskModalContent}>
-          <View style={styles.modalHeader}>
-            <ThemedText style={styles.modalTitle}>Add New Task</ThemedText>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowTaskModal(false)}
-            >
-              <Ionicons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
+  const handleSaveNote = (note: { title: string; description: string }) => {
+    // Save note logic - would be implemented with Supabase
+    Alert.alert('Note Saved', 'Your note has been saved successfully')
+    setShowNoteModal(false)
+  }
 
-          <ScrollView style={styles.modalScrollView}>
-            <TextInput
-              style={styles.input}
-              placeholder="Task Title"
-              value={newTask.title}
-              onChangeText={(text) => setNewTask({ ...newTask, title: text })}
-            />
+  const handleSaveMedia = (media: { caption: string; assets: any[] }) => {
+    // Save media logic - would be implemented with Supabase
+    Alert.alert('Media Saved', 'Your media has been uploaded successfully')
+    setShowMediaModal(false)
+  }
 
-            <View style={styles.dateSelectionContainer}>
-              <ThemedText style={styles.sectionTitle}>Select Date</ThemedText>
-              <View style={styles.yearMonthSelector}>
-                <TouchableOpacity
-                  style={styles.yearButton}
-                  onPress={() => setShowYearPicker(true)}
-                >
-                  <ThemedText style={styles.yearButtonText}>{selectedYear}</ThemedText>
-                  <Ionicons name="chevron-down" size={16} color="#666" />
-                </TouchableOpacity>
+  const handleSaveDocument = (doc: { caption: string; files: any[] }) => {
+    // Save document logic - would be implemented with Supabase
+    Alert.alert(
+      'Documents Saved',
+      'Your documents have been uploaded successfully'
+    )
+    setShowDocumentModal(false)
+  }
 
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.monthScroll}
-                >
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <TouchableOpacity
-                      key={i}
-                      style={[
-                        styles.monthButton,
-                        selectedMonth === i && styles.selectedMonth,
-                      ]}
-                      onPress={() => setSelectedMonth(i)}
-                    >
-                      <ThemedText
-                        style={[
-                          styles.monthText,
-                          selectedMonth === i && styles.selectedMonthText,
-                        ]}
-                      >
-                        {monthNames[i].substring(0, 3)}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
+  const renderModals = () => (
+    <>
+      <TaskModal
+        visible={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+        onSave={handleSaveTask}
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
+        selectedDay={selectedDay}
+        task={newTask}
+        setTask={setNewTask}
+        monthNames={monthNames}
+        weekDays={weekDays}
+        days={days}
+      />
 
-              <View style={styles.calendarGrid}>
-                {weekDays.map((day) => (
-                  <View key={day} style={styles.weekDayCell}>
-                    <ThemedText style={styles.weekDayText}>{day}</ThemedText>
-                  </View>
-                ))}
-                {days.map((day, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.dayCell,
-                      day.isCurrentMonth && styles.currentMonthDay,
-                      day.day === selectedDay && styles.selectedDay,
-                    ]}
-                    onPress={() => {
-                      setSelectedDay(day.day)
-                      setSelectedMonth(day.month)
-                      setSelectedYear(day.year)
-                    }}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.dayText,
-                        !day.isCurrentMonth && styles.otherMonthDay,
-                        day.day === selectedDay && styles.selectedDayText,
-                      ]}
-                    >
-                      {day.day}
-                    </ThemedText>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+      <DailyTaskModal
+        visible={showDailyTaskModal}
+        onClose={() => setShowDailyTaskModal(false)}
+        onSave={handleSaveTask}
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
+        selectedDay={selectedDay}
+        task={newTask}
+        setTask={setNewTask}
+        handleAttachment={handleAttachment}
+        monthNames={monthNames}
+        weekDays={weekDays}
+        days={days}
+      />
 
-            <View style={styles.priorityContainer}>
-              <ThemedText>Priority:</ThemedText>
-              <View style={styles.priorityButtons}>
-                {['high', 'medium', 'low'].map((priority) => (
-                  <TouchableOpacity
-                    key={priority}
-                    style={[
-                      styles.priorityButton,
-                      newTask.priority === priority && styles.selectedPriority
-                    ]}
-                    onPress={() => setNewTask({ ...newTask, priority: priority as Task['priority'] })}
-                  >
-                    <ThemedText>{priority}</ThemedText>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+      <NoteModal
+        visible={showNoteModal}
+        onClose={() => setShowNoteModal(false)}
+        onSave={handleSaveNote}
+      />
 
-            <TouchableOpacity
-              style={styles.timeButton}
-              onPress={() => setShowTimePicker(true)}
-            >
-              <Ionicons name="time-outline" size={20} color="#666" />
-              <ThemedText style={styles.timeButtonText}>
-                {newTask.time || 'Set Time'}
-              </ThemedText>
-            </TouchableOpacity>
+      <MediaModal
+        visible={showMediaModal}
+        onClose={() => setShowMediaModal(false)}
+        onSave={handleSaveMedia}
+      />
 
-            {showTimePicker && (
-              <DateTimePicker
-                value={selectedTime}
-                mode="time"
-                onChange={handleTimeChange}
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                is24Hour={true}
-              />
-            )}
-
-            <View style={styles.switchContainer}>
-              <ThemedText>Daily Task</ThemedText>
-              <Switch
-                value={newTask.is_daily}
-                onValueChange={(value) => setNewTask({ ...newTask, is_daily: value })}
-              />
-            </View>
-
-            {newTask.is_daily && (
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => {
-                  // Implement date picker for end date
-                }}
-              >
-                <Ionicons name="calendar-outline" size={20} color="#666" />
-                <ThemedText style={styles.dateButtonText}>
-                  {newTask.end_date || 'Set End Date'}
-                </ThemedText>
-              </TouchableOpacity>
-            )}
-
-            <TextInput
-              style={[styles.input, styles.notesInput]}
-              placeholder="Notes"
-              multiline
-              value={newTask.notes}
-              onChangeText={(text) => setNewTask({ ...newTask, notes: text })}
-            />
-
-            <TouchableOpacity
-              style={styles.attachmentButton}
-              onPress={handleAttachment}
-            >
-              <Ionicons name="attach-outline" size={20} color="#666" />
-              <ThemedText style={styles.attachmentButtonText}>
-                {newTask.has_attachment ? 'Change Attachment' : 'Add Attachment'}
-              </ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={saveTask}
-            >
-              <ThemedText style={styles.saveButtonText}>Save Task</ThemedText>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+      <DocumentModal
+        visible={showDocumentModal}
+        onClose={() => setShowDocumentModal(false)}
+        onSave={handleSaveDocument}
+      />
+    </>
   )
 
   const getFilteredTasks = () => {
-    return tasks.filter(task => {
+    return tasks.filter((task) => {
       if (task.is_daily) {
         // Show daily tasks for all dates
         return true
@@ -563,13 +472,64 @@ const CalendarScreen = () => {
     })
   }
 
+  // Toggle FAB menu
+  const toggleFabMenu = () => {
+    const toValue = fabOpen ? 0 : 1
+
+    Animated.spring(animation, {
+      toValue,
+      friction: 5,
+      useNativeDriver: true,
+    }).start()
+
+    setFabOpen(!fabOpen)
+  }
+
+  // Animation values for rotating + to X
+  const rotation = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '45deg'],
+  })
+
+  // Animation values for menu items
+  const taskButtonTranslateY = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -60],
+  })
+
+  const dailyTaskButtonTranslateY = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -120],
+  })
+
+  const noteButtonTranslateY = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -180],
+  })
+
+  const mediaButtonTranslateY = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -240],
+  })
+
+  const documentButtonTranslateY = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -300],
+  })
+
+  // Opacity animation
+  const opacity = animation.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 0, 1],
+  })
+
   return (
     <ThemedView style={styles.container}>
       <StatusBar style="auto" />
 
       {renderMonthSelector()}
       {renderYearPicker()}
-      {renderTaskModal()}
+      {renderModals()}
 
       <View style={styles.calendarCard}>
         <View style={styles.monthSelector}>
@@ -595,12 +555,150 @@ const CalendarScreen = () => {
         style={styles.tasksList}
       />
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setShowTaskModal(true)}
-      >
-        <Ionicons name="add" size={32} color="white" />
-      </TouchableOpacity>
+      {/* FAB Menu */}
+      <View style={styles.fabContainer}>
+        {/* Task Button */}
+        <Animated.View
+          style={[
+            styles.fabItem,
+            {
+              transform: [{ translateY: taskButtonTranslateY }],
+              opacity: opacity,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.fabItemButton, { backgroundColor: '#FF3B30' }]}
+            onPress={() => {
+              setShowTaskModal(true)
+              setFabOpen(false)
+              Animated.spring(animation, {
+                toValue: 0,
+                friction: 5,
+                useNativeDriver: true,
+              }).start()
+            }}
+          >
+            <Ionicons name="list" size={18} color="white" />
+          </TouchableOpacity>
+          <ThemedText style={styles.fabItemLabel}>Task</ThemedText>
+        </Animated.View>
+
+        {/* Daily Task Button */}
+        <Animated.View
+          style={[
+            styles.fabItem,
+            {
+              transform: [{ translateY: dailyTaskButtonTranslateY }],
+              opacity: opacity,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.fabItemButton, { backgroundColor: '#000000' }]}
+            onPress={() => {
+              setShowDailyTaskModal(true)
+              setFabOpen(false)
+              Animated.spring(animation, {
+                toValue: 0,
+                friction: 5,
+                useNativeDriver: true,
+              }).start()
+            }}
+          >
+            <Ionicons name="repeat" size={18} color="white" />
+          </TouchableOpacity>
+          <ThemedText style={styles.fabItemLabel}>Daily Task</ThemedText>
+        </Animated.View>
+
+        {/* Note Button */}
+        <Animated.View
+          style={[
+            styles.fabItem,
+            {
+              transform: [{ translateY: noteButtonTranslateY }],
+              opacity: opacity,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.fabItemButton, { backgroundColor: '#FF9500' }]}
+            onPress={() => {
+              setShowNoteModal(true)
+              setFabOpen(false)
+              Animated.spring(animation, {
+                toValue: 0,
+                friction: 5,
+                useNativeDriver: true,
+              }).start()
+            }}
+          >
+            <Ionicons name="document-text" size={18} color="white" />
+          </TouchableOpacity>
+          <ThemedText style={styles.fabItemLabel}>Note</ThemedText>
+        </Animated.View>
+
+        {/* Photos/Videos Button */}
+        <Animated.View
+          style={[
+            styles.fabItem,
+            {
+              transform: [{ translateY: mediaButtonTranslateY }],
+              opacity: opacity,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.fabItemButton, { backgroundColor: '#FFD60A' }]}
+            onPress={() => {
+              setShowMediaModal(true)
+              setFabOpen(false)
+              Animated.spring(animation, {
+                toValue: 0,
+                friction: 5,
+                useNativeDriver: true,
+              }).start()
+            }}
+          >
+            <Ionicons name="image" size={18} color="white" />
+          </TouchableOpacity>
+          <ThemedText style={styles.fabItemLabel}>Photos/Videos</ThemedText>
+        </Animated.View>
+
+        {/* Document Button */}
+        <Animated.View
+          style={[
+            styles.fabItem,
+            {
+              transform: [{ translateY: documentButtonTranslateY }],
+              opacity: opacity,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.fabItemButton, { backgroundColor: '#007AFF' }]}
+            onPress={() => {
+              setShowDocumentModal(true)
+              setFabOpen(false)
+              Animated.spring(animation, {
+                toValue: 0,
+                friction: 5,
+                useNativeDriver: true,
+              }).start()
+            }}
+          >
+            <Ionicons name="folder" size={18} color="white" />
+          </TouchableOpacity>
+          <ThemedText style={styles.fabItemLabel}>Documents</ThemedText>
+        </Animated.View>
+
+        {/* Main FAB */}
+        <TouchableOpacity style={styles.fab} onPress={toggleFabMenu}>
+          <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+            <Ionicons name="add" size={32} color="white" />
+          </Animated.View>
+        </TouchableOpacity>
+      </View>
     </ThemedView>
   )
 }
@@ -613,7 +711,6 @@ const styles = StyleSheet.create({
     padding: 0,
     backgroundColor: '#FFF8F0',
     paddingTop: 30,
-
   },
   header: {
     paddingTop: 20,
@@ -748,10 +845,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingRight: 12,
   },
-  fab: {
+  fabContainer: {
     position: 'absolute',
     right: 20,
     bottom: 20,
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  fab: {
     width: 58,
     height: 58,
     borderRadius: 29,
@@ -763,29 +864,48 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
+    zIndex: 10,
   },
-  yearText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginRight: 16,
+  fabItem: {
+    position: 'absolute',
+    width: 140,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
   },
-  monthScroll: {
-    flex: 1,
+  fabItemButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
-  monthButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginHorizontal: 4,
+  fabItemLabel: {
+    marginRight: 8,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
     borderRadius: 8,
+    marginBottom: 16,
   },
-  selectedMonth: {
-    backgroundColor: '#74b9ff',
+  uploadButtonText: {
+    marginLeft: 8,
+    color: '#666',
   },
-  monthText: {
-    fontSize: 16,
-  },
-  selectedMonthText: {
-    color: 'white',
+  captionInput: {
+    height: 80,
+    textAlignVertical: 'top',
   },
   modalContainer: {
     flex: 1,
@@ -967,5 +1087,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginLeft: 4,
+  },
+  yearText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginRight: 16,
+  },
+  monthScroll: {
+    flex: 1,
+  },
+  monthButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+    borderRadius: 8,
+  },
+  selectedMonth: {
+    backgroundColor: '#74b9ff',
+  },
+  monthText: {
+    fontSize: 16,
+  },
+  selectedMonthText: {
+    color: 'white',
   },
 })
