@@ -1,14 +1,14 @@
-# DaisyDo
+# GoGreen
 
-A feature-rich task management and calendar app built with Expo.
+An eco-friendly travel planning app built with Expo that helps city planners and citizens choose optimized, sustainable travel routes.
 
 ## Features
 
-- **Calendar View**: Visualize tasks with color-coded dates
-- **Task Management**: Add, organize, and track tasks with priorities
-- **Attachments**: Add photos, documents, PDFs, and other file formats to tasks
-- **Notifications**: Set reminders and get notifications for task deadlines
-- **User Profile**: View task completion analytics and saved items
+- **Route Optimization**: AI-powered route suggestions based on environmental impact
+- **Real-time Traffic Analysis**: Consider real-world constraints and traffic patterns
+- **Eco-friendly Alternatives**: Suggest sustainable transportation options
+- **Carbon Footprint Tracking**: Monitor and reduce your travel carbon emissions
+- **Community Insights**: Share and discover eco-friendly routes with other users
 
 ## Getting Started
 
@@ -41,66 +41,37 @@ A feature-rich task management and calendar app built with Expo.
 - `assets/`: Static assets like images and fonts
 - `constants/`: App-wide constant values
 - `hooks/`: Custom React hooks
+- `services/`: AI and route optimization services
+- `utils/`: Helper functions and utilities
 
 ## Development Roadmap
 
 - [x] Set up project structure
 - [x] Configure bottom tab navigation
-- [x] Create basic UI for Calendar, Tasks, and Profile screens
-- [ ] Implement calendar view with date selection
-- [ ] Develop task creation and management functionality
-- [ ] Add user authentication (email/password)
-- [ ] Implement file attachments for tasks
-- [ ] Add notification system for reminders
-- [ ] Build analytics for task completion in profile
+- [ ] Implement AI route optimization engine
+- [ ] Create map integration with route visualization
+- [ ] Develop carbon footprint calculator
+- [ ] Add user authentication
+- [ ] Implement real-time traffic data integration
+- [ ] Build community features for route sharing
+- [ ] Add analytics dashboard for environmental impact
+
+## Tech Stack
+
+- Expo/React Native
+- Supabase (Backend & Authentication)
+- Google Maps API
+- AI/ML for route optimization
+- Real-time traffic data APIs
+
+## Contributing
+
+We welcome contributions to make GoGreen better! Please read our contributing guidelines before submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 # Welcome to your Expo app 👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
-
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+This is an [Expo](https://expo.dev) project created with [`

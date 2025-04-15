@@ -1,5 +1,103 @@
-I want to build an app using expo . DaisyDo will be the app name Daisy flower will be the the app logo 🌼 . Using email and password we will login the user .in signup screen the user can enter name email pass confirm pass and on login screen can do forgot password too. In bottom navigation we will give calander icon task icon profile icon .calander icon (having a current month having mark on current day show grids for date with colors and we can change months year data everything but by default showing current month and date Okayy we can add tasks ,can add photoes, docs , pdf ,any formats like sheets and everything can add notes ,,Can add remainder to the dates can add the frequency and time of notification to appear for push notifications for tasks to adress the user .if the task is done or not We will ask user if it's current day we will ask them frequently if not done the task .this app will focus on the task and their priority with the large database for storage the important things datewise . Now move on to the task page user can see the tasks on current day here properly by default and if he wants can see other dates tasks too and by bottom + button can add more tasks and attachments to this day okay
-Om profile user can see the analysis of completed tasks
-Can see all the saved items notes images pdf all things at once here in component form can like the tasks and things Okayy
+# GoGreen - Eco-Friendly Travel Planner
+
+## App Overview
+
+GoGreen is an AI-powered travel planning app that helps users make environmentally conscious travel decisions. The app will use real-time data and AI algorithms to suggest the most eco-friendly routes while considering real-world constraints.
+
+## Core Features
+
+### 1. User Authentication
+
+- Email/password login
+- Signup with name, email, password
+- Forgot password functionality
+- User profile management
+
+### 2. Route Planning
+
+- AI-powered route optimization
+- Real-time traffic analysis
+- Multiple transportation mode options
+- Carbon footprint calculation
+- Route comparison based on environmental impact
+
+### 3. Map Integration
+
+- Interactive map view
+- Route visualization
+- Points of interest (eco-friendly stops)
+- Real-time traffic updates
+- Alternative route suggestions
+
+### 4. Community Features
+
+- Share eco-friendly routes
+- Rate and review routes
+- Community challenges
+- Environmental impact leaderboard
+
+### 5. Analytics Dashboard
+
+- Personal carbon footprint tracking
+- Route history
+- Environmental impact reports
+- Achievement system for sustainable travel
+
+## Technical Implementation
+
+### Frontend
+
+- Expo/React Native
+- Bottom navigation with:
+  - Map/Routes tab
+  - Community tab
+  - Profile tab
+- Material Design UI components
+- Custom animations and transitions
+
+### Backend
+
+- Supabase for authentication and database
+- AI/ML services for route optimization
+- Real-time traffic data integration
+- Carbon footprint calculation engine
+
+### APIs and Services
+
+- Google Maps API
+- Traffic data APIs
+- Weather API
+- Public transportation APIs
+- Carbon emission calculation services
+
+## Development Phases
+
+### Phase 1: Foundation
+
+- Set up Expo project
+- Implement authentication
+- Basic map integration
+- Core UI components
+
+### Phase 2: Core Features
+
+- AI route optimization
+- Real-time traffic integration
+- Carbon footprint calculator
+- Basic community features
+
+### Phase 3: Advanced Features
+
+- Advanced analytics
+- Community challenges
+- Achievement system
+- Route sharing and rating
+
+### Phase 4: Polish
+
+- Performance optimization
+- UI/UX improvements
+- Testing and bug fixes
+- Launch preparation
 
 Help me improve this idea as well as I need a proper guidence to start this project

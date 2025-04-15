@@ -133,38 +133,56 @@ export default function Login() {
       <StatusBar style="auto" />
 
       <View style={styles.headerContainer}>
-        <ThemedText style={styles.title}>DaisyDo</ThemedText>
-        <View style={styles.subtitleContainer}>
-          <ThemedText style={styles.daisyEmoji}>🌼</ThemedText>
-          <ThemedText style={styles.subtitle}>Login to your account</ThemedText>
+        <View style={styles.logoContainer}>
+          <Ionicons name="leaf" size={48} color="#4CAF50" />
         </View>
+        <ThemedText style={styles.title}>GoGreen</ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Sign in to continue your eco-journey
+        </ThemedText>
       </View>
 
       <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-        <View style={styles.passwordContainer}>
+        <View style={styles.inputWrapper}>
+          <Ionicons
+            name="mail-outline"
+            size={24}
+            color="#4CAF50"
+            style={styles.inputIcon}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholderTextColor="#90A4AE"
+          />
+        </View>
+        <View style={styles.inputWrapper}>
+          <Ionicons
+            name="lock-closed-outline"
+            size={24}
+            color="#4CAF50"
+            style={styles.inputIcon}
+          />
           <TextInput
             style={styles.passwordInput}
             placeholder="Password"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
+            placeholderTextColor="#90A4AE"
           />
           <TouchableOpacity
             style={styles.eyeButton}
             onPress={() => setShowPassword(!showPassword)}
           >
             <Ionicons
-              name={showPassword ? 'eye-off' : 'eye'}
+              name={showPassword ? 'eye-off-outline' : 'eye-outline'}
               size={24}
-              color="#777"
+              color="#4CAF50"
             />
           </TouchableOpacity>
         </View>
@@ -173,7 +191,7 @@ export default function Login() {
       {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
 
       <TouchableOpacity
-        style={styles.signInButton}
+        style={[styles.signInButton, loading && styles.signInButtonDisabled]}
         onPress={handleSignIn}
         disabled={loading}
       >
@@ -197,69 +215,83 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 24,
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 48,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   title: {
-    fontSize: 42,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#7C65CA',
-    marginBottom: 16,
-  },
-  subtitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  daisyEmoji: {
-    fontSize: 24,
-    marginRight: 8,
+    color: '#2E7D32',
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 18,
-    color: '#666',
+    fontSize: 16,
+    color: '#66BB6A',
+    textAlign: 'center',
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  input: {
-    height: 56,
-    borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 8,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  passwordContainer: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E1E1E1',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
     marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    height: 56,
+    fontSize: 16,
+    color: '#424242',
   },
   passwordInput: {
     flex: 1,
     height: 56,
-    paddingHorizontal: 16,
     fontSize: 16,
+    color: '#424242',
   },
   eyeButton: {
-    padding: 10,
+    padding: 8,
   },
   signInButton: {
     height: 56,
-    backgroundColor: '#7C65CA',
-    borderRadius: 8,
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  signInButtonDisabled: {
+    backgroundColor: '#A5D6A7',
   },
   buttonText: {
     color: 'white',
@@ -272,14 +304,14 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 16,
-    color: '#666',
+    color: '#757575',
   },
   signUpLink: {
-    color: '#7C65CA',
+    color: '#4CAF50',
     fontWeight: 'bold',
   },
   errorText: {
-    color: 'red',
+    color: '#D32F2F',
     marginBottom: 16,
     textAlign: 'center',
   },
