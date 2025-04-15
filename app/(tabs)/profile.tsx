@@ -8,93 +8,17 @@ import {
   Dimensions,
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
-import { useAuth } from '@clerk/clerk-expo'
+import { useAuth, useUser } from '@clerk/clerk-expo'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 
 import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
-import { supabase } from '@/lib/supabase'
-
-type Task = {
-  id: string
-  title: string
-  time?: string
-  color: string
-  hasReminder?: boolean
-  hasAttachment?: boolean
-  priority: 'high' | 'medium' | 'low'
-  notes?: string
-  isDaily?: boolean
-  endDate?: string
-  isCompleted?: boolean
-}
-
-type AnalyticsData = {
-  labels: string[]
-  data: number[]
-}
-
-const { width } = Dimensions.get('window')
-const CHART_HEIGHT = 200
-const BAR_WIDTH = 30
-const SPACING = 10
-
-const CustomBarChart = ({ data }: { data: AnalyticsData }) => {
-  const maxValue = Math.max(...data.data)
-  const scale = CHART_HEIGHT / maxValue
-
-  return (
-    <View style={styles.chartContainer}>
-      {data.data.map((value, index) => {
-        const barHeight = value * scale
-        return (
-          <View key={index} style={styles.barContainer}>
-            <View style={[styles.bar, { height: barHeight }]} />
-            <ThemedText style={styles.barLabel}>{data.labels[index]}</ThemedText>
-          </View>
-        )
-      })}
-    </View>
-  )
-}
 
 const ProfileScreen = () => {
-  const { isLoaded, signOut, userId } = useAuth()
+  const { isLoaded, signOut } = useAuth()
+  const { user } = useUser()
   const [isSigningOut, setIsSigningOut] = useState(false)
-  const [dailyTasks, setDailyTasks] = useState<Task[]>([])
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    data: [3, 5, 2, 4, 6, 1, 4],
-  })
-
-  useEffect(() => {
-    fetchDailyTasks()
-    fetchAnalytics()
-  }, [])
-
-  const fetchDailyTasks = async () => {
-    const { data, error } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('isDaily', true)
-
-    if (error) {
-      console.error('Error fetching daily tasks:', error)
-      return
-    }
-
-    setDailyTasks(data || [])
-  }
-
-  const fetchAnalytics = async () => {
-    // This is a simplified version. In a real app, you'd fetch actual data
-    const mockData = {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      data: [3, 5, 2, 4, 6, 1, 4],
-    }
-    setAnalyticsData(mockData)
-  }
 
   const handleSignOut = async () => {
     if (!isLoaded) return
@@ -128,28 +52,6 @@ const ProfileScreen = () => {
     )
   }
 
-  const renderDailyTask = (task: Task) => (
-    <View key={task.id} style={styles.dailyTaskItem}>
-      <View style={styles.dailyTaskContent}>
-        <ThemedText style={styles.dailyTaskTitle}>{task.title}</ThemedText>
-        {task.time && (
-          <View style={styles.taskMeta}>
-            <Ionicons name="time-outline" size={16} color="#666" />
-            <ThemedText style={styles.taskTime}>{task.time}</ThemedText>
-          </View>
-        )}
-      </View>
-      <TouchableOpacity
-        style={styles.editButton}
-        onPress={() => {
-          // Implement edit functionality
-        }}
-      >
-        <Ionicons name="create-outline" size={20} color="#666" />
-      </TouchableOpacity>
-    </View>
-  )
-
   return (
     <ThemedView style={styles.container}>
       <StatusBar style="auto" />
@@ -172,20 +74,62 @@ const ProfileScreen = () => {
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <ThemedText style={styles.avatarText}>D</ThemedText>
+              <ThemedText style={styles.avatarText}>
+                {user?.firstName?.[0] || 'D'}
+              </ThemedText>
             </View>
           </View>
-          <ThemedText style={styles.userName}>DaisyDo User</ThemedText>
+          <ThemedText style={styles.userName}>
+            {user?.firstName || 'DaisyDo User'}
+          </ThemedText>
+          <ThemedText style={styles.userEmail}>
+            {user?.primaryEmailAddress?.emailAddress}
+          </ThemedText>
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Work-Life Balance</ThemedText>
-          <CustomBarChart data={analyticsData} />
+          <ThemedText style={styles.sectionTitle}>
+            Eco-Friendly Stats
+          </ThemedText>
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Ionicons name="leaf-outline" size={24} color="#4CAF50" />
+              <ThemedText style={styles.statValue}>12</ThemedText>
+              <ThemedText style={styles.statLabel}>Green Trips</ThemedText>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="time-outline" size={24} color="#4CAF50" />
+              <ThemedText style={styles.statValue}>45 min</ThemedText>
+              <ThemedText style={styles.statLabel}>Time Saved</ThemedText>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="cash-outline" size={24} color="#4CAF50" />
+              <ThemedText style={styles.statValue}>$25</ThemedText>
+              <ThemedText style={styles.statLabel}>Money Saved</ThemedText>
+            </View>
+          </View>
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Daily Routine Tasks</ThemedText>
-          {dailyTasks.map(renderDailyTask)}
+          <ThemedText style={styles.sectionTitle}>Recent Routes</ThemedText>
+          <View style={styles.routeCard}>
+            <Ionicons name="navigate-outline" size={24} color="#4CAF50" />
+            <View style={styles.routeInfo}>
+              <ThemedText style={styles.routeTitle}>Home to Work</ThemedText>
+              <ThemedText style={styles.routeDetails}>
+                Most eco-friendly route
+              </ThemedText>
+            </View>
+          </View>
+          <View style={styles.routeCard}>
+            <Ionicons name="navigate-outline" size={24} color="#4CAF50" />
+            <View style={styles.routeInfo}>
+              <ThemedText style={styles.routeTitle}>Grocery Store</ThemedText>
+              <ThemedText style={styles.routeDetails}>
+                Quickest route with bike lanes
+              </ThemedText>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </ThemedView>
@@ -234,7 +178,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#74b9ff',
+    backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -248,6 +192,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
   },
+  userEmail: {
+    fontSize: 16,
+    color: '#666',
+  },
   section: {
     padding: 20,
   },
@@ -256,51 +204,47 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
   },
-  chartContainer: {
+  statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'flex-end',
-    height: CHART_HEIGHT,
-    paddingVertical: 20,
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
-  barContainer: {
-    alignItems: 'center',
-  },
-  bar: {
-    width: BAR_WIDTH,
-    backgroundColor: '#74b9ff',
-    borderRadius: 4,
-  },
-  barLabel: {
-    marginTop: 8,
-    fontSize: 12,
-  },
-  dailyTaskItem: {
-    flexDirection: 'row',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    alignItems: 'center',
-  },
-  dailyTaskContent: {
+  statCard: {
     flex: 1,
-  },
-  dailyTaskTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  taskMeta: {
-    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
+    marginHorizontal: 4,
   },
-  taskTime: {
-    marginLeft: 4,
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginVertical: 8,
+  },
+  statLabel: {
+    fontSize: 12,
     color: '#666',
   },
-  editButton: {
-    padding: 8,
+  routeCard: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  routeInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  routeTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  routeDetails: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
 })
-
