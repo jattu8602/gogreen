@@ -30,7 +30,17 @@ interface RouteOption {
 }
 
 interface VehicleRecommendation {
-  vehicle: 'car' | 'bike' | 'walk' | 'train' | 'auto' | 'cycle' | 'taxi' | 'bus' | 'metro' | 'rickshaw'
+  vehicle:
+    | 'car'
+    | 'bike'
+    | 'walk'
+    | 'train'
+    | 'auto'
+    | 'cycle'
+    | 'taxi'
+    | 'bus'
+    | 'metro'
+    | 'rickshaw'
   greenScore: number
   co2Emission: string
   isElectric?: boolean
@@ -105,8 +115,11 @@ export default function TabOneScreen() {
   const [selectedOptions, setSelectedOptions] = useState<RouteOption>({
     type: 'fastest',
   })
-  const [recommendedVehicles, setRecommendedVehicles] = useState<VehicleRecommendation[]>([])
-  const [selectedVehicle, setSelectedVehicle] = useState<VehicleRecommendation | null>(null)
+  const [recommendedVehicles, setRecommendedVehicles] = useState<
+    VehicleRecommendation[]
+  >([])
+  const [selectedVehicle, setSelectedVehicle] =
+    useState<VehicleRecommendation | null>(null)
   const [routeInfo, setRouteInfo] = useState('')
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null)
   const [loading, setLoading] = useState(false)
@@ -148,11 +161,14 @@ export default function TabOneScreen() {
   }, [])
 
   const initMap = (latitude: number, longitude: number) => {
-    console.log('Initializing map with coordinates:', latitude, longitude);
+    console.log('Initializing map with coordinates:', latitude, longitude)
 
     // Don't log the full API key in production - this is for debugging only
     if (__DEV__) {
-      console.log('Using TomTom API key starting with:', TOMTOM_API_KEY.substring(0, 5) + '...');
+      console.log(
+        'Using TomTom API key starting with:',
+        TOMTOM_API_KEY.substring(0, 5) + '...'
+      )
     }
 
     const html = `
@@ -541,7 +557,7 @@ export default function TabOneScreen() {
       [
         {
           text: 'Cancel',
-          style: 'cancel'
+          style: 'cancel',
         },
         {
           text: 'Reset',
@@ -549,20 +565,28 @@ export default function TabOneScreen() {
             // Make sure the WebView is properly initialized
             if (webViewRef.current) {
               try {
-                setStartLocation(null);
-                setEndLocation(null);
+                setStartLocation(null)
+                setEndLocation(null)
                 // Use the improved clearMarkers function in the WebView
-                webViewRef.current.injectJavaScript('try { clearMarkers(); } catch(e) { console.error("Error in clearMarkers:", e); } true;');
+                webViewRef.current.injectJavaScript(
+                  'try { clearMarkers(); } catch(e) { console.error("Error in clearMarkers:", e); } true;'
+                )
               } catch (error) {
-                console.error('Error resetting map markers:', error);
-                Alert.alert('Error', 'Failed to reset map markers. Please try again.');
+                console.error('Error resetting map markers:', error)
+                Alert.alert(
+                  'Error',
+                  'Failed to reset map markers. Please try again.'
+                )
               }
             } else {
-              Alert.alert('Error', 'Map is not initialized yet. Please wait a moment and try again.');
+              Alert.alert(
+                'Error',
+                'Map is not initialized yet. Please wait a moment and try again.'
+              )
             }
           },
-          style: 'destructive'
-        }
+          style: 'destructive',
+        },
       ]
     )
   }
@@ -579,31 +603,31 @@ export default function TabOneScreen() {
 
         handleMapPress(coordinate)
       } else if (data.type === 'mapLoaded') {
-        console.log('Map loaded message received from WebView');
+        console.log('Map loaded message received from WebView')
         if (userLocation) {
           recenterMap()
         }
       } else if (data.type === 'mapError') {
-        console.error('Map error received from WebView:', data.error);
+        console.error('Map error received from WebView:', data.error)
         Alert.alert(
           'Map Error',
           `There was an error loading the map: ${data.error}. Please check your connection and API key.`,
           [{ text: 'OK' }]
-        );
+        )
       } else if (data.type === 'markersCleared') {
         if (data.status === 'success') {
-          console.log('Markers cleared successfully');
+          console.log('Markers cleared successfully')
         } else {
-          console.warn('Warning clearing markers:', data.message);
+          console.warn('Warning clearing markers:', data.message)
         }
       } else if (data.type === 'routeCleared') {
-        console.log('Route cleared successfully');
+        console.log('Route cleared successfully')
       } else if (data.type === 'markerAdded') {
-        console.log(`${data.markerType} marker added successfully`);
+        console.log(`${data.markerType} marker added successfully`)
       } else if (data.type === 'routeDisplayed') {
-        console.log('Route displayed successfully');
+        console.log('Route displayed successfully')
       } else if (data.type === 'mapCentered') {
-        console.log('Map centered successfully');
+        console.log('Map centered successfully')
       }
     } catch (error) {
       console.error('Error parsing WebView message:', error)
@@ -674,7 +698,8 @@ export default function TabOneScreen() {
       `Distance: ${routeDetails?.distance || 'Unknown'}\n` +
       `Estimated Time: ${routeDetails?.duration || 'Unknown'}\n` +
       `CO₂ Emission: ${routeDetails?.co2Emission || 'Unknown'}\n` +
-      (selectedVehicle?.vehicle === 'car' && routeDetails?.batteryUsage !== 'N/A'
+      (selectedVehicle?.vehicle === 'car' &&
+      routeDetails?.batteryUsage !== 'N/A'
         ? `Battery Usage: ${routeDetails?.batteryUsage}\n\n`
         : '\n') +
       `Plan ahead and drive safely!`
@@ -713,8 +738,10 @@ export default function TabOneScreen() {
     }
   }
 
-  const determineRecommendedVehicles = (distance: number): VehicleRecommendation[] => {
-    const vehicles: VehicleRecommendation[] = [];
+  const determineRecommendedVehicles = (
+    distance: number
+  ): VehicleRecommendation[] => {
+    const vehicles: VehicleRecommendation[] = []
 
     // For short distances (less than 3 km)
     if (distance < 3) {
@@ -723,22 +750,22 @@ export default function TabOneScreen() {
         greenScore: 50,
         co2Emission: '0 kg',
         isElectric: false,
-        isCNG: false
-      });
+        isCNG: false,
+      })
       vehicles.push({
         vehicle: 'bike',
         greenScore: 40,
         co2Emission: '0 kg',
         isElectric: false,
-        isCNG: false
-      });
+        isCNG: false,
+      })
       vehicles.push({
         vehicle: 'cycle',
         greenScore: 45,
         co2Emission: '0 kg',
         isElectric: false,
-        isCNG: false
-      });
+        isCNG: false,
+      })
     }
 
     // For medium distances (less than 10 km)
@@ -748,15 +775,15 @@ export default function TabOneScreen() {
         greenScore: 30,
         co2Emission: `${(distance * 0.05).toFixed(2)} kg`,
         isElectric: true,
-        isCNG: false
-      });
+        isCNG: false,
+      })
       vehicles.push({
         vehicle: 'auto',
         greenScore: 25,
         co2Emission: `${(distance * 0.08).toFixed(2)} kg`,
         isElectric: false,
-        isCNG: true
-      });
+        isCNG: true,
+      })
     }
 
     // For all distances
@@ -765,15 +792,15 @@ export default function TabOneScreen() {
       greenScore: 15,
       co2Emission: `${(distance * 0.12).toFixed(2)} kg`,
       isElectric: true,
-      isCNG: false
-    });
+      isCNG: false,
+    })
     vehicles.push({
       vehicle: 'taxi',
       greenScore: 10,
       co2Emission: `${(distance * 0.15).toFixed(2)} kg`,
       isElectric: false,
-      isCNG: false
-    });
+      isCNG: false,
+    })
 
     // For medium and long distances
     if (distance >= 3) {
@@ -782,8 +809,8 @@ export default function TabOneScreen() {
         greenScore: 35,
         co2Emission: `${(distance * 0.04).toFixed(2)} kg`,
         isElectric: false,
-        isCNG: true
-      });
+        isCNG: true,
+      })
     }
 
     // For longer distances
@@ -793,19 +820,19 @@ export default function TabOneScreen() {
         greenScore: 40,
         co2Emission: `${(distance * 0.02).toFixed(2)} kg`,
         isElectric: true,
-        isCNG: false
-      });
+        isCNG: false,
+      })
       vehicles.push({
         vehicle: 'train',
         greenScore: 38,
         co2Emission: `${(distance * 0.03).toFixed(2)} kg`,
         isElectric: true,
-        isCNG: false
-      });
+        isCNG: false,
+      })
     }
 
     // Sort by green score (highest first)
-    return vehicles.sort((a, b) => b.greenScore - a.greenScore);
+    return vehicles.sort((a, b) => b.greenScore - a.greenScore)
   }
 
   const findRoute = async () => {
@@ -841,20 +868,20 @@ export default function TabOneScreen() {
         const durationMin = Math.round(summary.travelTimeInSeconds / 60)
 
         // Generate vehicle recommendations based on distance
-        const distanceNumber = parseFloat(distanceKm);
-        const recommendations = determineRecommendedVehicles(distanceNumber);
-        setRecommendedVehicles(recommendations);
+        const distanceNumber = parseFloat(distanceKm)
+        const recommendations = determineRecommendedVehicles(distanceNumber)
+        setRecommendedVehicles(recommendations)
 
         // Set first recommendation as default
-        const defaultVehicle = recommendations[0];
-        setSelectedVehicle(defaultVehicle);
+        const defaultVehicle = recommendations[0]
+        setSelectedVehicle(defaultVehicle)
 
         setRouteDetails({
           distance: `${distanceKm} km`,
           duration: `${durationMin} mins`,
           co2Emission: defaultVehicle.co2Emission,
           recommendedVehicles: recommendations,
-          selectedVehicle: defaultVehicle
+          selectedVehicle: defaultVehicle,
         })
 
         setRouteInfo(
@@ -898,21 +925,28 @@ export default function TabOneScreen() {
   }
 
   const selectVehicle = (vehicle: VehicleRecommendation) => {
-    setSelectedVehicle(vehicle);
+    setSelectedVehicle(vehicle)
 
     if (routeDetails) {
       setRouteDetails({
         ...routeDetails,
         co2Emission: vehicle.co2Emission,
-        selectedVehicle: vehicle
-      });
+        selectedVehicle: vehicle,
+      })
     }
 
-    setRouteInfo(`${selectedOptions.type} route (${vehicle.vehicle})`);
+    setRouteInfo(`${selectedOptions.type} route (${vehicle.vehicle})`)
   }
 
   const saveRouteData = async () => {
-    if (!isSignedIn || !user || !routeDetails || !startLocation || !endLocation || !selectedVehicle)
+    if (
+      !isSignedIn ||
+      !user ||
+      !routeDetails ||
+      !startLocation ||
+      !endLocation ||
+      !selectedVehicle
+    )
       return
 
     try {
@@ -922,9 +956,11 @@ export default function TabOneScreen() {
       const userUUID = getUUIDFromClerkID(user.id)
 
       // Use the green score directly from the selected vehicle
-      const greenPoints = selectedVehicle.greenScore;
+      const greenPoints = selectedVehicle.greenScore
 
-      console.log(`Saving route with ${greenPoints} green points for user ${userUUID}`);
+      console.log(
+        `Saving route with ${greenPoints} green points for user ${userUUID}`
+      )
 
       const routeData = {
         user_id: userUUID,
@@ -934,7 +970,9 @@ export default function TabOneScreen() {
         end_lng: endLocation.longitude,
         distance: distance,
         duration: routeDetails.duration,
-        co2_emission: parseFloat(selectedVehicle.co2Emission.replace(' kg', '')),
+        co2_emission: parseFloat(
+          selectedVehicle.co2Emission.replace(' kg', '')
+        ),
         vehicle_type: selectedVehicle.vehicle,
         route_type: selectedOptions.type,
         green_points: greenPoints,
@@ -1016,8 +1054,8 @@ export default function TabOneScreen() {
         startInLoadingState={true}
         scalesPageToFit={true}
         onError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.warn('WebView error: ', nativeEvent);
+          const { nativeEvent } = syntheticEvent
+          console.warn('WebView error: ', nativeEvent)
         }}
       />
 
@@ -1063,25 +1101,51 @@ export default function TabOneScreen() {
                 key={index}
                 style={[
                   styles.vehicleOption,
-                  selectedVehicle?.vehicle === vehicle.vehicle && styles.selectedVehicleOption
+                  selectedVehicle?.vehicle === vehicle.vehicle &&
+                    styles.selectedVehicleOption,
                 ]}
                 onPress={() => selectVehicle(vehicle)}
               >
                 <Text style={styles.vehicleEmoji}>
-                  {vehicle.vehicle === 'car' ? '🚗' :
-                   vehicle.vehicle === 'bike' ? '🏍️' :
-                   vehicle.vehicle === 'walk' ? '🚶' :
-                   vehicle.vehicle === 'train' ? '🚆' :
-                   vehicle.vehicle === 'auto' ? '🛺' :
-                   vehicle.vehicle === 'cycle' ? '🚲' :
-                   vehicle.vehicle === 'taxi' ? '🚖' :
-                   vehicle.vehicle === 'bus' ? '🚌' :
-                   vehicle.vehicle === 'metro' ? '🚇' :
-                   vehicle.vehicle === 'rickshaw' ? '🛺' : '🚗'}
+                  {vehicle.vehicle === 'car'
+                    ? '🚗'
+                    : vehicle.vehicle === 'bike'
+                    ? '🏍️'
+                    : vehicle.vehicle === 'walk'
+                    ? '🚶'
+                    : vehicle.vehicle === 'train'
+                    ? '🚆'
+                    : vehicle.vehicle === 'auto'
+                    ? '🛺'
+                    : vehicle.vehicle === 'cycle'
+                    ? '🚲'
+                    : vehicle.vehicle === 'taxi'
+                    ? '🚖'
+                    : vehicle.vehicle === 'bus'
+                    ? '🚌'
+                    : vehicle.vehicle === 'metro'
+                    ? '🚇'
+                    : vehicle.vehicle === 'rickshaw'
+                    ? '🛺'
+                    : '🚗'}
                 </Text>
                 <Text style={styles.vehicleName}>{vehicle.vehicle}</Text>
-                <View style={[styles.vehicleScoreBadge, { backgroundColor: vehicle.greenScore > 30 ? COLORS.leafGreen : vehicle.greenScore > 20 ? '#FFA500' : '#FF6347' }]}>
-                  <Text style={styles.vehicleScoreText}>+{vehicle.greenScore}</Text>
+                <View
+                  style={[
+                    styles.vehicleScoreBadge,
+                    {
+                      backgroundColor:
+                        vehicle.greenScore > 30
+                          ? COLORS.leafGreen
+                          : vehicle.greenScore > 20
+                          ? '#FFA500'
+                          : '#FF6347',
+                    },
+                  ]}
+                >
+                  <Text style={styles.vehicleScoreText}>
+                    +{vehicle.greenScore}
+                  </Text>
                 </View>
                 {vehicle.isElectric && (
                   <View style={styles.vehicleTagBadge}>
