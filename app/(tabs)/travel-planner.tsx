@@ -36,6 +36,8 @@ import {
 } from '../services/geminiService'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import MapView, { Marker, Polyline } from 'react-native-maps'
+import { useUser } from '@clerk/clerk-expo'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Define tree-themed colors to match the rest of the app
 const COLORS = {
@@ -49,11 +51,13 @@ const COLORS = {
   lightestGreen: '#DCFCE7', // Very light green for backgrounds
   orange: '#E86D28', // Orange for highlights and buttons
   darkBackground: '#111111', // Dark background color
-  blue: '#4F8EF7', // Blue accent color
   grey: '#CCCCCC', // Grey for inactive elements
 }
 
 const WINDOW_WIDTH = Dimensions.get('window').width
+
+// AsyncStorage key for profile image
+const PROFILE_IMAGE_KEY = 'user_profile_image'
 
 export default function TravelPlannerScreen() {
   const [startLocation, setStartLocation] = useState('Current Location')
@@ -69,7 +73,39 @@ export default function TravelPlannerScreen() {
   const [userName, setUserName] = useState('Jatin')
   const [userLocation, setUserLocation] = useState('Bhopal')
   const [showMapModal, setShowMapModal] = useState(false)
+  const [profileImage, setProfileImage] = useState<string | null>(null)
+  const { user, isSignedIn } = useUser()
   const insets = useSafeAreaInsets()
+
+  // Load profile image from AsyncStorage or Clerk
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      if (isSignedIn && user) {
+        try {
+          // Try loading from AsyncStorage first
+          const storedImageUrl = await AsyncStorage.getItem(PROFILE_IMAGE_KEY)
+          if (storedImageUrl) {
+            setProfileImage(storedImageUrl)
+          } else if (user.imageUrl) {
+            setProfileImage(user.imageUrl)
+            await AsyncStorage.setItem(PROFILE_IMAGE_KEY, user.imageUrl)
+          }
+
+          // Update username from Clerk if available
+          if (user.username || user.fullName) {
+            setUserName(user.username || user.fullName || userName)
+          }
+        } catch (error) {
+          console.error('Error loading profile image:', error)
+        }
+      } else {
+        // If not signed in, use a placeholder image
+        setProfileImage('https://randomuser.me/api/portraits/men/40.jpg')
+      }
+    }
+
+    loadProfileImage()
+  }, [isSignedIn, user])
 
   // Dummy coordinates for map
   const [mapRegion, setMapRegion] = useState({
@@ -123,29 +159,29 @@ export default function TravelPlannerScreen() {
       <View style={styles.filterRow}>
         <TouchableOpacity style={styles.filterButton}>
           <ThemedText style={styles.filterButtonText}>duration</ThemedText>
-          <Ionicons name="chevron-down" size={16} color={COLORS.white} />
+          <Ionicons name="chevron-down" size={16} color={COLORS.darkGreen} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.filterButton}>
           <ThemedText style={styles.filterButtonText}>travellers</ThemedText>
-          <Ionicons name="chevron-down" size={16} color={COLORS.white} />
+          <Ionicons name="chevron-down" size={16} color={COLORS.darkGreen} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.filterRow}>
         <TouchableOpacity style={styles.filterButton}>
           <ThemedText style={styles.filterButtonText}>budget</ThemedText>
-          <Ionicons name="chevron-down" size={16} color={COLORS.white} />
+          <Ionicons name="chevron-down" size={16} color={COLORS.darkGreen} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.filterButton}>
           <ThemedText style={styles.filterButtonText}>route type</ThemedText>
-          <Ionicons name="chevron-down" size={16} color={COLORS.white} />
+          <Ionicons name="chevron-down" size={16} color={COLORS.darkGreen} />
         </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
-        <Ionicons name="search" size={20} color={COLORS.blue} />
+        <Ionicons name="search" size={20} color={COLORS.white} />
         <ThemedText style={styles.applyButtonText}>Apply</ThemedText>
       </TouchableOpacity>
     </View>
@@ -158,7 +194,7 @@ export default function TravelPlannerScreen() {
       {isLoading ? (
         <ActivityIndicator
           size="large"
-          color={COLORS.orange}
+          color={COLORS.leafGreen}
           style={styles.loader}
         />
       ) : (
@@ -290,7 +326,7 @@ export default function TravelPlannerScreen() {
               latitude: mapRegion.latitude - 0.02,
               longitude: mapRegion.longitude - 0.02,
             }}
-            pinColor={COLORS.orange}
+            pinColor={COLORS.leafGreen}
           />
 
           {/* End marker */}
@@ -299,7 +335,7 @@ export default function TravelPlannerScreen() {
               latitude: mapRegion.latitude + 0.01,
               longitude: mapRegion.longitude + 0.02,
             }}
-            pinColor={COLORS.orange}
+            pinColor={COLORS.bark}
           />
 
           {/* Route line */}
@@ -319,7 +355,7 @@ export default function TravelPlannerScreen() {
                 longitude: mapRegion.longitude + 0.02,
               },
             ]}
-            strokeColor={COLORS.darkGreen}
+            strokeColor={COLORS.leafGreen}
             strokeWidth={4}
           />
         </MapView>
@@ -375,14 +411,26 @@ export default function TravelPlannerScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       {/* User greeting header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <View style={styles.profileCircle}>
-          <Ionicons name="person" size={24} color={COLORS.darkBackground} />
+        <ThemedText style={styles.greeting}>travel planner</ThemedText>
+        <View style={styles.userInfoContainer}>
+          <ThemedText style={styles.username}>{userName}</ThemedText>
+          <View style={styles.profilePhotoContainer}>
+            {profileImage ? (
+              <Image
+                source={{ uri: profileImage }}
+                style={styles.profileImage}
+              />
+            ) : (
+              <View style={styles.profileImagePlaceholder}>
+                <Ionicons name="person" size={24} color={COLORS.darkGreen} />
+              </View>
+            )}
+          </View>
         </View>
-        <ThemedText style={styles.greeting}>hi, {userName}</ThemedText>
       </View>
 
       <ScrollView style={styles.content}>
@@ -405,38 +453,72 @@ export default function TravelPlannerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.darkBackground,
+    backgroundColor: COLORS.white,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
+    backgroundColor: COLORS.lightestGreen,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(34, 197, 94, 0.2)',
   },
-  profileCircle: {
-    width: 40,
+  userInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profilePhotoContainer: {
     height: 40,
+    width: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: COLORS.white,
-    alignItems: 'center',
+    borderColor: COLORS.leafGreen,
+    backgroundColor: COLORS.paleGreen,
+    overflow: 'hidden',
+    marginLeft: 10,
     justifyContent: 'center',
-    marginRight: 10,
+    alignItems: 'center',
+  },
+  profileImage: {
+    height: '100%',
+    width: '100%',
+    borderRadius: 20,
+  },
+  profileImagePlaceholder: {
+    height: '100%',
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightestGreen,
   },
   greeting: {
     fontSize: 24,
-    color: COLORS.white,
-    fontWeight: '400',
+    color: COLORS.darkGreen,
+    fontWeight: '600',
+  },
+  username: {
+    fontSize: 16,
+    color: COLORS.bark,
+    fontWeight: '500',
   },
   content: {
     flex: 1,
+    backgroundColor: COLORS.white,
   },
   filtersContainer: {
     margin: 16,
     padding: 20,
     borderRadius: 12,
+    backgroundColor: COLORS.lightestGreen,
     borderWidth: 1,
-    borderColor: COLORS.blue,
+    borderColor: COLORS.darkGreen,
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   filterRow: {
     flexDirection: 'row',
@@ -448,31 +530,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.grey,
+    borderColor: COLORS.darkGreen,
+    backgroundColor: COLORS.white,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 15,
     width: '48%',
   },
   filterButtonText: {
-    color: COLORS.white,
+    color: COLORS.darkGreen,
     marginRight: 5,
+    fontWeight: '500',
   },
   applyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: COLORS.blue,
+    backgroundColor: COLORS.leafGreen,
     borderRadius: 20,
     paddingVertical: 8,
     paddingHorizontal: 15,
     alignSelf: 'center',
     width: 120,
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
   },
   applyButtonText: {
-    color: COLORS.blue,
+    color: COLORS.white,
     marginLeft: 5,
     fontWeight: '500',
   },
@@ -481,12 +568,19 @@ const styles = StyleSheet.create({
     marginTop: 0,
     padding: 20,
     borderRadius: 12,
+    backgroundColor: COLORS.white,
     borderWidth: 1,
-    borderColor: COLORS.blue,
+    borderColor: COLORS.bark,
+    shadowColor: COLORS.bark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   sectionTitle: {
     fontSize: 26,
-    color: COLORS.blue,
+    color: COLORS.bark,
+    fontWeight: '600',
     marginBottom: 20,
   },
   placeItem: {
@@ -494,13 +588,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 20,
     alignItems: 'center',
+    backgroundColor: COLORS.lightestGreen,
+    padding: 12,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.leafGreen,
   },
   placeInfo: {
     flex: 1,
   },
   placeNumber: {
     fontSize: 20,
-    color: COLORS.blue,
+    color: COLORS.darkGreen,
     fontWeight: '500',
     marginBottom: 5,
   },
@@ -508,23 +607,33 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   placeDistance: {
-    color: COLORS.white,
+    color: COLORS.soil,
     fontSize: 14,
   },
   placeTime: {
-    color: COLORS.white,
+    color: COLORS.soil,
     fontSize: 14,
   },
   placeImage: {
     width: 70,
     height: 70,
     borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.white,
   },
   routePlanContainer: {
     margin: 16,
     marginTop: 0,
     padding: 20,
     borderRadius: 12,
+    backgroundColor: COLORS.lightestGreen,
+    borderWidth: 1,
+    borderColor: COLORS.leafGreen,
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
     marginBottom: 100,
   },
   routeContent: {
@@ -532,20 +641,22 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
+    borderWidth: 1,
+    borderColor: COLORS.paleGreen,
   },
   locationUpdater: {
     alignItems: 'center',
     marginBottom: 15,
   },
   locationText: {
-    color: '#888',
+    color: COLORS.soil,
     marginBottom: 10,
   },
   currentLocationButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.orange,
+    backgroundColor: COLORS.leafGreen,
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 25,
@@ -566,7 +677,7 @@ const styles = StyleSheet.create({
   },
   timelineTime: {
     width: 40,
-    color: COLORS.orange,
+    color: COLORS.bark,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -581,15 +692,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   checkpointMarker: {
-    backgroundColor: '#1F2971', // Navy blue
+    backgroundColor: COLORS.leafGreen,
   },
   regularMarker: {
-    backgroundColor: '#888',
+    backgroundColor: COLORS.lightBark,
   },
   timelineConnector: {
     width: 2,
     height: 40,
-    backgroundColor: '#ccc',
+    backgroundColor: COLORS.paleGreen,
     position: 'absolute',
     top: 16,
   },
@@ -598,22 +709,27 @@ const styles = StyleSheet.create({
   },
   timelineLocation: {
     fontSize: 14,
-    color: '#444',
+    color: COLORS.soil,
     fontWeight: '500',
   },
   timelineDescription: {
     fontSize: 12,
-    color: '#888',
+    color: COLORS.lightBark,
   },
   viewMapButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.darkGreen,
+    backgroundColor: COLORS.leafGreen,
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 25,
     alignSelf: 'center',
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
   },
   viewMapText: {
     color: COLORS.white,
@@ -631,7 +747,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 40,
     right: 20,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: COLORS.darkGreen,
     padding: 8,
     borderRadius: 20,
   },
@@ -646,6 +762,8 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
     maxHeight: '40%',
+    borderTopWidth: 4,
+    borderTopColor: COLORS.leafGreen,
   },
   loader: {
     marginVertical: 20,

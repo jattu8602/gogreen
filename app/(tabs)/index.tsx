@@ -19,6 +19,8 @@ import { v5 as uuidv5 } from 'uuid'
 import { getUUIDFromClerkID } from '@/lib/userService'
 import { calculateGreenPoints, saveRoute } from '@/lib/routeService'
 import { TOMTOM_API_KEY, isTomTomKeyValid } from '../../constants/Config'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Ionicons } from '@expo/vector-icons'
 
 interface Location {
   latitude: number
@@ -132,6 +134,94 @@ export default function TabOneScreen() {
   const [mapHtml, setMapHtml] = useState('')
   const { user, isSignedIn } = useUser()
   const [routeSaved, setRouteSaved] = useState(false)
+  const [earnedPoints, setEarnedPoints] = useState<number | null>(null)
+  const [savedRouteHistory, setSavedRouteHistory] = useState<{
+    startLocation: Location | null;
+    endLocation: Location | null;
+    routeDetails: RouteDetails | null;
+    selectedVehicle: VehicleRecommendation | null;
+    routeInfo: string;
+    earnedPoints: number | null;
+  } | null>(null)
+
+  // Load saved route data from AsyncStorage on initial load
+  useEffect(() => {
+    const loadSavedRouteData = async () => {
+      try {
+        const savedRouteData = await AsyncStorage.getItem('SAVED_ROUTE_DATA');
+        if (savedRouteData) {
+          const parsedData = JSON.parse(savedRouteData);
+          // Restore saved route state
+          if (parsedData.routeSaved) {
+            setRouteSaved(true);
+            setEarnedPoints(parsedData.earnedPoints);
+            setStartLocation(parsedData.startLocation);
+            setEndLocation(parsedData.endLocation);
+            setRouteDetails(parsedData.routeDetails);
+            setSelectedVehicle(parsedData.selectedVehicle);
+            setRouteInfo(parsedData.routeInfo);
+
+            // If we have route coordinates, restore them on the map
+            if (parsedData.routeCoordinates && parsedData.routeCoordinates.length > 0) {
+              setRouteCoordinates(parsedData.routeCoordinates);
+
+              // Wait for the WebView to initialize before drawing the route
+              setTimeout(() => {
+                if (parsedData.startLocation && webViewRef.current) {
+                  webViewRef.current.injectJavaScript(
+                    `addStartMarker(${parsedData.startLocation.latitude}, ${parsedData.startLocation.longitude}); true;`
+                  );
+                }
+
+                if (parsedData.endLocation && webViewRef.current) {
+                  webViewRef.current.injectJavaScript(
+                    `addEndMarker(${parsedData.endLocation.latitude}, ${parsedData.endLocation.longitude}); true;`
+                  );
+                }
+
+                // Draw the route line
+                if (parsedData.routeCoordinates && parsedData.routeCoordinates.length > 0) {
+                  const geoJson = {
+                    type: 'FeatureCollection',
+                    features: [
+                      {
+                        type: 'Feature',
+                        geometry: {
+                          type: 'LineString',
+                          coordinates: parsedData.routeCoordinates.map((coord: Location) => [
+                            coord.longitude,
+                            coord.latitude,
+                          ]),
+                        },
+                        properties: {},
+                      },
+                    ],
+                  };
+
+                  webViewRef.current?.injectJavaScript(
+                    `displayRoute(${JSON.stringify(geoJson)}); true;`
+                  );
+                }
+              }, 1000); // Give the map a second to initialize
+            }
+
+            setSavedRouteHistory({
+              startLocation: parsedData.startLocation,
+              endLocation: parsedData.endLocation,
+              routeDetails: parsedData.routeDetails,
+              selectedVehicle: parsedData.selectedVehicle,
+              routeInfo: parsedData.routeInfo,
+              earnedPoints: parsedData.earnedPoints
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved route data:', error);
+      }
+    };
+
+    loadSavedRouteData();
+  }, []);
 
   useEffect(() => {
     ;(async () => {
@@ -539,13 +629,42 @@ export default function TabOneScreen() {
   }
 
   const resetRoute = () => {
-    setStartLocation(null)
-    setEndLocation(null)
-    setRouteCoordinates([])
-    setRouteInfo('')
-    setRouteDetails(null)
-    setAIRouteDescription('')
-    webViewRef.current?.injectJavaScript('clearRoute(); true;')
+    Alert.alert(
+      'Reset Route',
+      'Are you sure you want to reset this route? Any saved data will be cleared.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Reset',
+          onPress: async () => {
+            // Clear all route data
+            setStartLocation(null)
+            setEndLocation(null)
+            setRouteCoordinates([])
+            setRouteInfo('')
+            setRouteDetails(null)
+            setAIRouteDescription('')
+            setRouteSaved(false)
+            setEarnedPoints(null)
+            setSavedRouteHistory(null)
+
+            // Clear the route on the map
+            webViewRef.current?.injectJavaScript('clearRoute(); true;')
+
+            // Clear saved route data from AsyncStorage
+            try {
+              await AsyncStorage.removeItem('SAVED_ROUTE_DATA')
+            } catch (error) {
+              console.error('Error clearing saved route data:', error)
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    )
   }
 
   // Function to reset just the map markers without affecting route data
@@ -981,7 +1100,34 @@ export default function TabOneScreen() {
       // Save the route data which should also add green points
       await saveRoute(routeData)
 
+      // Set the earned points and update the UI
+      setEarnedPoints(greenPoints)
       setRouteSaved(true)
+
+      // Save route data to AsyncStorage for persistence
+      const persistentRouteData = {
+        routeSaved: true,
+        startLocation,
+        endLocation,
+        routeDetails,
+        selectedVehicle,
+        routeInfo,
+        earnedPoints: greenPoints,
+        routeCoordinates
+      }
+
+      await AsyncStorage.setItem('SAVED_ROUTE_DATA', JSON.stringify(persistentRouteData))
+
+      // Save route history for reference
+      setSavedRouteHistory({
+        startLocation,
+        endLocation,
+        routeDetails,
+        selectedVehicle,
+        routeInfo,
+        earnedPoints: greenPoints
+      })
+
       Alert.alert(
         'Route Saved!',
         `You earned ${greenPoints} green points for this eco-friendly route!`,
@@ -1094,6 +1240,13 @@ export default function TabOneScreen() {
             CO₂ Emission: {routeDetails.co2Emission}
           </Text>
 
+          {routeSaved && earnedPoints && (
+            <View style={styles.earnedPointsContainer}>
+              <Text style={styles.earnedPointsLabel}>Points Earned:</Text>
+              <Text style={styles.earnedPointsValue}>+{earnedPoints}</Text>
+            </View>
+          )}
+
           <Text style={styles.vehicleOptionsTitle}>Recommended Vehicles:</Text>
           <ScrollView horizontal style={styles.vehicleOptions}>
             {routeDetails.recommendedVehicles.map((vehicle, index) => (
@@ -1103,8 +1256,11 @@ export default function TabOneScreen() {
                   styles.vehicleOption,
                   selectedVehicle?.vehicle === vehicle.vehicle &&
                     styles.selectedVehicleOption,
+                  routeSaved && selectedVehicle?.vehicle === vehicle.vehicle &&
+                    styles.savedVehicleOption
                 ]}
-                onPress={() => selectVehicle(vehicle)}
+                onPress={() => !routeSaved && selectVehicle(vehicle)}
+                disabled={routeSaved}
               >
                 <Text style={styles.vehicleEmoji}>
                   {vehicle.vehicle === 'car'
@@ -1166,16 +1322,19 @@ export default function TabOneScreen() {
               <Text style={styles.resetButtonText}>Reset Route</Text>
             </TouchableOpacity>
 
-            {isSignedIn && !routeSaved && (
+            {isSignedIn && !routeSaved ? (
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={saveRouteData}
               >
                 <Text style={styles.saveButtonText}>Save & Earn Points</Text>
               </TouchableOpacity>
-            )}
-
-            {!isSignedIn && (
+            ) : routeSaved ? (
+              <View style={styles.savedIndicator}>
+                <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
+                <Text style={styles.savedIndicatorText}>Route Saved</Text>
+              </View>
+            ) : (
               <TouchableOpacity style={styles.signInButton}>
                 <Text style={styles.signInButtonText}>
                   Sign In to Earn Points
@@ -1630,5 +1789,48 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  earnedPointsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.paleGreen,
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.leafGreen,
+  },
+  earnedPointsLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+  },
+  earnedPointsValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.leafGreen,
+  },
+  savedVehicleOption: {
+    borderColor: COLORS.leafGreen,
+    borderWidth: 2,
+    backgroundColor: 'rgba(34, 197, 94, 0.3)',
+    opacity: 0.9,
+  },
+  savedIndicator: {
+    backgroundColor: COLORS.darkGreen,
+    padding: 10,
+    borderRadius: 8,
+    flex: 1,
+    marginLeft: 5,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  savedIndicatorText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
 })
