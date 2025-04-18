@@ -39,6 +39,20 @@ export type RoutePlan = {
   duration: string
   co2Emissions: number
   ecoFriendlyScore: number
+  // Add coordinates for mapping
+  startCoordinates?: {
+    latitude: number
+    longitude: number
+  }
+  endCoordinates?: {
+    latitude: number
+    longitude: number
+  }
+  // Additional trip details
+  estimatedDistance?: string
+  estimatedDuration?: string
+  travelTips?: string[]
+  scenicSpots?: string[]
 }
 
 // Define nearby place type
@@ -121,16 +135,39 @@ export async function generateTravelPlan(
 // Function to generate a route plan between two locations
 export async function generateRoutePlan(
   startLocation: string,
-  endLocation: string
+  endLocation: string,
+  filters?: {
+    duration?: string
+    travellers?: string
+    budget?: string
+    routeType?: string
+  }
 ): Promise<{ text: string; routePlan?: RoutePlan }> {
   try {
+    // Build a more detailed prompt with filters if provided
+    let filterText = '';
+    if (filters) {
+      filterText = `
+      Planning preferences:
+      - Duration: ${filters.duration || 'Any'}
+      - Number of travellers: ${filters.travellers || '1'}
+      - Budget: ${filters.budget || 'Medium'}
+      - Route type preference: ${filters.routeType || 'Eco-friendly'}
+
+      Please tailor the plan to these preferences.
+      `;
+    }
+
     const prompt = `
       Create an eco-friendly route plan from ${startLocation} to ${endLocation}.
+      ${filterText}
       Include:
       1. A detailed route with recommended stops and estimated times
       2. The total distance and duration of the journey
       3. Estimated CO2 emissions for the route
       4. An eco-friendly score on a scale of 1-100
+      5. Some travel tips specific to this route
+      6. Approximate coordinates for start and end locations (use realistic coordinates)
 
       Format the response as a JSON object with the following structure:
       {
@@ -147,7 +184,19 @@ export async function generateRoutePlan(
         "distance": "X km",
         "duration": "X hours Y minutes",
         "co2Emissions": number (in kg),
-        "ecoFriendlyScore": number (1-100)
+        "ecoFriendlyScore": number (1-100),
+        "startCoordinates": {
+          "latitude": number,
+          "longitude": number
+        },
+        "endCoordinates": {
+          "latitude": number,
+          "longitude": number
+        },
+        "estimatedDistance": "X km",
+        "estimatedDuration": "X hours Y minutes",
+        "travelTips": ["tip1", "tip2", "tip3"],
+        "scenicSpots": ["spot1", "spot2", "spot3"]
       }
 
       Also provide a friendly, conversational summary of the route plan that highlights the eco-friendly aspects.
@@ -163,6 +212,18 @@ export async function generateRoutePlan(
     if (jsonMatch) {
       try {
         const routePlan = JSON.parse(jsonMatch[0]) as RoutePlan
+
+        // Use placeholder coordinates for testing if actual coordinates are missing
+        if (!routePlan.startCoordinates) {
+          // Set default coordinates based on location names
+          // These are very approximate and would need to be replaced with actual geocoding
+          routePlan.startCoordinates = getApproximateCoordinates(startLocation);
+        }
+
+        if (!routePlan.endCoordinates) {
+          routePlan.endCoordinates = getApproximateCoordinates(endLocation);
+        }
+
         return { text, routePlan }
       } catch (error) {
         console.error('Error parsing route plan JSON:', error)
@@ -177,6 +238,53 @@ export async function generateRoutePlan(
       text: `I'm sorry, I couldn't generate a route plan from ${startLocation} to ${endLocation} at the moment. Please try again later.`,
     }
   }
+}
+
+// Helper function to get approximate coordinates based on location name
+// This is a very simple implementation that would need to be replaced with actual geocoding
+function getApproximateCoordinates(location: string): { latitude: number, longitude: number } {
+  // Default to coordinates in India
+  let latitude = 23.2599; // Default latitude (Bhopal)
+  let longitude = 77.4126; // Default longitude (Bhopal)
+
+  // Very basic location matching - this should be replaced with a proper geocoding service
+  if (location.toLowerCase().includes('delhi')) {
+    latitude = 28.6139;
+    longitude = 77.2090;
+  } else if (location.toLowerCase().includes('mumbai')) {
+    latitude = 19.0760;
+    longitude = 72.8777;
+  } else if (location.toLowerCase().includes('bangalore') || location.toLowerCase().includes('bengaluru')) {
+    latitude = 12.9716;
+    longitude = 77.5946;
+  } else if (location.toLowerCase().includes('hyderabad')) {
+    latitude = 17.3850;
+    longitude = 78.4867;
+  } else if (location.toLowerCase().includes('chennai')) {
+    latitude = 13.0827;
+    longitude = 80.2707;
+  } else if (location.toLowerCase().includes('kolkata')) {
+    latitude = 22.5726;
+    longitude = 88.3639;
+  } else if (location.toLowerCase().includes('jaipur')) {
+    latitude = 26.9124;
+    longitude = 75.7873;
+  } else if (location.toLowerCase().includes('ahmedabad')) {
+    latitude = 23.0225;
+    longitude = 72.5714;
+  } else if (location.toLowerCase().includes('pune')) {
+    latitude = 18.5204;
+    longitude = 73.8567;
+  } else if (location.toLowerCase().includes('bhopal')) {
+    latitude = 23.2599;
+    longitude = 77.4126;
+  }
+
+  // Add a small random offset to avoid exact same coordinates for different locations
+  latitude += (Math.random() - 0.5) * 0.1;
+  longitude += (Math.random() - 0.5) * 0.1;
+
+  return { latitude, longitude };
 }
 
 // Function to find nearby famous places

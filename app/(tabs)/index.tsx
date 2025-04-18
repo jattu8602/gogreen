@@ -145,6 +145,8 @@ export default function TabOneScreen() {
   } | null>(null)
   const [routeError, setRouteError] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [showAchievement, setShowAchievement] = useState(false)
+  const [achievementPoints, setAchievementPoints] = useState(0)
 
   // Load saved route data from AsyncStorage on initial load
   useEffect(() => {
@@ -1114,6 +1116,10 @@ export default function TabOneScreen() {
       setEarnedPoints(greenPoints)
       setRouteSaved(true)
 
+      // Set achievement data
+      setAchievementPoints(greenPoints)
+      setShowAchievement(true)
+
       // Save route data to AsyncStorage for persistence
       const persistentRouteData = {
         routeSaved: true,
@@ -1137,12 +1143,6 @@ export default function TabOneScreen() {
         routeInfo,
         earnedPoints: greenPoints
       })
-
-      Alert.alert(
-        'Route Saved!',
-        `You earned ${greenPoints} green points for this eco-friendly route!`,
-        [{ text: 'Nice!' }]
-      )
     } catch (error) {
       console.error('Error saving route data:', error)
       Alert.alert(
@@ -1441,6 +1441,58 @@ export default function TabOneScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Achievement Modal */}
+      <Modal
+        visible={showAchievement}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAchievement(false)}
+      >
+        <View style={styles.achievementContainer}>
+          <View style={styles.achievementCard}>
+            <View style={styles.achievementIconRow}>
+              <Text style={styles.achievementEmoji}>🌱</Text>
+              <Text style={styles.achievementEmoji}>🎉</Text>
+              <Text style={styles.achievementEmoji}>🌍</Text>
+            </View>
+
+            <Text style={styles.achievementTitle}>Green Points Earned!</Text>
+
+            <View style={styles.pointsContainer}>
+              <Text style={styles.pointsValue}>+{achievementPoints}</Text>
+              <Text style={styles.pointsLabel}>points</Text>
+            </View>
+
+            <Text style={styles.achievementMessage}>
+              Thank you for choosing eco-friendly transportation! You're helping to create a greener planet.
+            </Text>
+
+            <View style={styles.achievementStatsRow}>
+              <View style={styles.achievementStatItem}>
+                <Ionicons name="leaf" size={24} color={COLORS.leafGreen} />
+                <Text style={styles.achievementStatValue}>
+                  {(achievementPoints * 0.05).toFixed(1)} kg
+                </Text>
+                <Text style={styles.achievementStatLabel}>CO₂ Saved</Text>
+              </View>
+
+              <View style={styles.achievementStatItem}>
+                <Ionicons name="podium" size={24} color={COLORS.bark} />
+                <Text style={styles.achievementStatValue}>+{Math.round(achievementPoints/5)}</Text>
+                <Text style={styles.achievementStatLabel}>Rank Points</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.achievementButton}
+              onPress={() => setShowAchievement(false)}
+            >
+              <Text style={styles.achievementButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -1923,6 +1975,102 @@ const styles = StyleSheet.create({
   },
   tryAgainButtonText: {
     color: '#444',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  achievementContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  achievementCard: {
+    backgroundColor: COLORS.white,
+    width: '85%',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  achievementIconRow: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    justifyContent: 'center',
+  },
+  achievementEmoji: {
+    fontSize: 40,
+    marginHorizontal: 8,
+  },
+  achievementTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  pointsContainer: {
+    backgroundColor: COLORS.paleGreen,
+    borderRadius: 50,
+    height: 100,
+    width: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: COLORS.leafGreen,
+    marginBottom: 15,
+  },
+  pointsValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+  },
+  pointsLabel: {
+    fontSize: 14,
+    color: COLORS.soil,
+  },
+  achievementMessage: {
+    fontSize: 16,
+    color: COLORS.soil,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  achievementStatsRow: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  achievementStatItem: {
+    alignItems: 'center',
+    backgroundColor: COLORS.lightestGreen,
+    padding: 10,
+    borderRadius: 10,
+    width: '45%',
+  },
+  achievementStatValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+    marginTop: 5,
+  },
+  achievementStatLabel: {
+    fontSize: 12,
+    color: COLORS.soil,
+  },
+  achievementButton: {
+    backgroundColor: COLORS.leafGreen,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 30,
+    marginTop: 10,
+  },
+  achievementButtonText: {
+    color: COLORS.white,
     fontWeight: 'bold',
     fontSize: 16,
   },
