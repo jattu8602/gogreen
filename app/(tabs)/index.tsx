@@ -33,32 +33,43 @@ interface RouteDetails {
 }
 
 // TomTom API key
-const TOMTOM_API_KEY = process.env.EXPO_PUBLIC_TOMTOM_API_KEY!;
+const TOMTOM_API_KEY = process.env.EXPO_PUBLIC_TOMTOM_API_KEY!
 
 // TomTom routing type mapping
 const getTomTomRouteType = (type: string): string => {
-  switch(type) {
-    case 'fastest': return 'fastest';
-    case 'cost-effective': return 'eco';
-    case 'low-traffic': return 'thrilling';
-    case 'long-drive': return 'shortest';
-    default: return 'fastest';
+  switch (type) {
+    case 'fastest':
+      return 'fastest'
+    case 'cost-effective':
+      return 'eco'
+    case 'low-traffic':
+      return 'thrilling'
+    case 'long-drive':
+      return 'shortest'
+    default:
+      return 'fastest'
   }
-};
+}
 
 // TomTom vehicle type mapping
 const getTomTomVehicleType = (vehicle: string): string => {
-  switch(vehicle) {
-    case 'car': return 'car';
+  switch (vehicle) {
+    case 'car':
+      return 'car'
     case 'bike':
-    case 'cycle': return 'bicycle';
-    case 'walk': return 'pedestrian';
-    case 'train': return 'bus'; // TomTom doesn't have train specifically
+    case 'cycle':
+      return 'bicycle'
+    case 'walk':
+      return 'pedestrian'
+    case 'train':
+      return 'bus' // TomTom doesn't have train specifically
     case 'auto':
-    case 'taxi': return 'taxi';
-    default: return 'car';
+    case 'taxi':
+      return 'taxi'
+    default:
+      return 'car'
   }
-};
+}
 
 export default function MapScreen() {
   const webViewRef = useRef<WebView>(null)
@@ -259,18 +270,22 @@ export default function MapScreen() {
       </script>
     </body>
     </html>
-    `;
+    `
 
-    setMapHtml(html);
+    setMapHtml(html)
   }
 
   const handleMapPress = (coordinate: Location) => {
     if (!startLocation) {
       setStartLocation(coordinate)
-      webViewRef.current?.injectJavaScript(`addStartMarker(${coordinate.latitude}, ${coordinate.longitude}); true;`)
+      webViewRef.current?.injectJavaScript(
+        `addStartMarker(${coordinate.latitude}, ${coordinate.longitude}); true;`
+      )
     } else if (!endLocation) {
       setEndLocation(coordinate)
-      webViewRef.current?.injectJavaScript(`addEndMarker(${coordinate.latitude}, ${coordinate.longitude}); true;`)
+      webViewRef.current?.injectJavaScript(
+        `addEndMarker(${coordinate.latitude}, ${coordinate.longitude}); true;`
+      )
       setShowOptions(true)
     }
   }
@@ -300,7 +315,7 @@ export default function MapScreen() {
       if (data.type === 'mapClick') {
         const coordinate = {
           latitude: data.lat,
-          longitude: data.lng
+          longitude: data.lng,
         }
 
         handleMapPress(coordinate)
@@ -319,7 +334,9 @@ export default function MapScreen() {
 
     try {
       const response = await fetch(
-        `https://api.tomtom.com/search/2/search/${encodeURIComponent(searchQuery)}.json?key=${TOMTOM_API_KEY}`
+        `https://api.tomtom.com/search/2/search/${encodeURIComponent(
+          searchQuery
+        )}.json?key=${TOMTOM_API_KEY}`
       )
 
       const data = await response.json()
@@ -339,15 +356,19 @@ export default function MapScreen() {
   const selectSearchResult = (result: any) => {
     const coordinate = {
       latitude: result.position.lat,
-      longitude: result.position.lon
+      longitude: result.position.lon,
     }
 
     if (!startLocation) {
       setStartLocation(coordinate)
-      webViewRef.current?.injectJavaScript(`addStartMarker(${coordinate.latitude}, ${coordinate.longitude}); true;`)
+      webViewRef.current?.injectJavaScript(
+        `addStartMarker(${coordinate.latitude}, ${coordinate.longitude}); true;`
+      )
     } else if (!endLocation) {
       setEndLocation(coordinate)
-      webViewRef.current?.injectJavaScript(`addEndMarker(${coordinate.latitude}, ${coordinate.longitude}); true;`)
+      webViewRef.current?.injectJavaScript(
+        `addEndMarker(${coordinate.latitude}, ${coordinate.longitude}); true;`
+      )
       setShowOptions(true)
     }
 
@@ -355,7 +376,9 @@ export default function MapScreen() {
     setSearchQuery('')
 
     // Center map on selected location
-    webViewRef.current?.injectJavaScript(`centerOnLocation(${coordinate.latitude}, ${coordinate.longitude}, 15); true;`)
+    webViewRef.current?.injectJavaScript(
+      `centerOnLocation(${coordinate.latitude}, ${coordinate.longitude}, 15); true;`
+    )
   }
 
   const getRouteDescription = async () => {
@@ -367,12 +390,14 @@ export default function MapScreen() {
     setAIDescriptionLoading(true)
 
     // Create simple description to show when AI fails
-    const fallbackDescription = `This is a ${selectedOptions.type} route by ${selectedOptions.vehicle}.\n\n` +
+    const fallbackDescription =
+      `This is a ${selectedOptions.type} route by ${selectedOptions.vehicle}.\n\n` +
       `Distance: ${routeDetails?.distance || 'Unknown'}\n` +
       `Estimated Time: ${routeDetails?.duration || 'Unknown'}\n` +
       `CO₂ Emission: ${routeDetails?.co2Emission || 'Unknown'}\n` +
-      (selectedOptions.vehicle === 'car' && routeDetails?.batteryUsage !== 'N/A' ?
-        `Battery Usage: ${routeDetails?.batteryUsage}\n\n` : '\n') +
+      (selectedOptions.vehicle === 'car' && routeDetails?.batteryUsage !== 'N/A'
+        ? `Battery Usage: ${routeDetails?.batteryUsage}\n\n`
+        : '\n') +
       `Plan ahead and drive safely!`
 
     try {
@@ -383,18 +408,24 @@ export default function MapScreen() {
         `• The route follows main roads with moderate traffic\n` +
         `• You may encounter traffic signals at major intersections\n` +
         `• CO₂ emission for this trip is estimated at ${routeDetails?.co2Emission}\n` +
-        (selectedOptions.vehicle === 'car' ? `• Electric vehicle battery usage: approximately ${routeDetails?.batteryUsage}\n\n` : '\n') +
+        (selectedOptions.vehicle === 'car'
+          ? `• Electric vehicle battery usage: approximately ${routeDetails?.batteryUsage}\n\n`
+          : '\n') +
         `Tips:\n` +
-        `• ${selectedOptions.type === 'fastest' ? 'This route prioritizes speed over fuel efficiency' :
-             selectedOptions.type === 'cost-effective' ? 'This route balances time and fuel efficiency' :
-             selectedOptions.type === 'low-traffic' ? 'This route avoids congested areas where possible' :
-             'This scenic route is longer but more enjoyable'}\n` +
+        `• ${
+          selectedOptions.type === 'fastest'
+            ? 'This route prioritizes speed over fuel efficiency'
+            : selectedOptions.type === 'cost-effective'
+            ? 'This route balances time and fuel efficiency'
+            : selectedOptions.type === 'low-traffic'
+            ? 'This route avoids congested areas where possible'
+            : 'This scenic route is longer but more enjoyable'
+        }\n` +
         `• Consider traveling outside peak hours for a smoother journey\n` +
         `• The route is suitable for ${selectedOptions.vehicle} travel`
 
       setAIRouteDescription(mockDescription)
       setShowAIDescription(true)
-
     } catch (error) {
       console.error('Error getting route description:', error)
       setAIRouteDescription(fallbackDescription)
@@ -425,11 +456,11 @@ export default function MapScreen() {
         const coordinates: Location[] = route.legs.flatMap((leg: any) =>
           leg.points.map((point: any) => ({
             latitude: point.latitude,
-            longitude: point.longitude
+            longitude: point.longitude,
           }))
         )
 
-      setRouteCoordinates(coordinates)
+        setRouteCoordinates(coordinates)
 
         // Extract route summary
         const summary = route.summary
@@ -438,14 +469,15 @@ export default function MapScreen() {
 
         // Calculate CO2 emission and battery usage
         let co2Factor = 0
-        let batteryUsage = "N/A"
+        let batteryUsage = 'N/A'
 
-        switch(selectedOptions.vehicle) {
+        switch (selectedOptions.vehicle) {
           case 'car':
             co2Factor = 120 // g/km
-            batteryUsage = selectedOptions.type === 'fastest' ?
-              `${Math.round(Number(distanceKm) * 1.5)}%` :
-              `${Math.round(Number(distanceKm) * 1.2)}%`
+            batteryUsage =
+              selectedOptions.type === 'fastest'
+                ? `${Math.round(Number(distanceKm) * 1.5)}%`
+                : `${Math.round(Number(distanceKm) * 1.2)}%`
             break
           case 'bike':
           case 'cycle':
@@ -463,16 +495,18 @@ export default function MapScreen() {
             co2Factor = 100
         }
 
-        const co2Emission = (Number(distanceKm) * co2Factor / 1000).toFixed(2) // in kg
+        const co2Emission = ((Number(distanceKm) * co2Factor) / 1000).toFixed(2) // in kg
 
         setRouteDetails({
           distance: `${distanceKm} km`,
           duration: `${durationMin} mins`,
           co2Emission: `${co2Emission} kg`,
-          batteryUsage: batteryUsage
+          batteryUsage: batteryUsage,
         })
 
-        setRouteInfo(`${selectedOptions.type} route by ${selectedOptions.vehicle}`)
+        setRouteInfo(
+          `${selectedOptions.type} route by ${selectedOptions.vehicle}`
+        )
 
         // Convert coordinates to GeoJSON for TomTom Map
         const geoJson = {
@@ -482,24 +516,29 @@ export default function MapScreen() {
               type: 'Feature',
               geometry: {
                 type: 'LineString',
-                coordinates: coordinates.map(coord => [coord.longitude, coord.latitude])
+                coordinates: coordinates.map((coord) => [
+                  coord.longitude,
+                  coord.latitude,
+                ]),
               },
-              properties: {}
-            }
-          ]
+              properties: {},
+            },
+          ],
         }
 
         // Display route on map
-        webViewRef.current?.injectJavaScript(`displayRoute(${JSON.stringify(geoJson)}); true;`)
+        webViewRef.current?.injectJavaScript(
+          `displayRoute(${JSON.stringify(geoJson)}); true;`
+        )
       } else {
         throw new Error('Failed to calculate route')
       }
     } catch (error) {
       console.error('Error finding route:', error)
       Alert.alert(
-        "Route Error",
-        "Failed to generate route. Please try again.",
-        [{ text: "OK" }]
+        'Route Error',
+        'Failed to generate route. Please try again.',
+        [{ text: 'OK' }]
       )
     } finally {
       setLoading(false)
@@ -508,7 +547,7 @@ export default function MapScreen() {
   }
 
   const refreshMap = () => {
-    setWebViewKey(prevKey => prevKey + 1)
+    setWebViewKey((prevKey) => prevKey + 1)
   }
 
   return (
@@ -535,8 +574,12 @@ export default function MapScreen() {
                 style={styles.searchResultItem}
                 onPress={() => selectSearchResult(result)}
               >
-                <Text style={styles.searchResultName}>{result.poi?.name || result.address.freeformAddress}</Text>
-                <Text style={styles.searchResultAddress}>{result.address.freeformAddress}</Text>
+                <Text style={styles.searchResultName}>
+                  {result.poi?.name || result.address.freeformAddress}
+                </Text>
+                <Text style={styles.searchResultAddress}>
+                  {result.address.freeformAddress}
+                </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -586,12 +629,21 @@ export default function MapScreen() {
       {routeDetails && (
         <View style={styles.routeInfoCard}>
           <Text style={styles.routeInfoTitle}>{routeInfo}</Text>
-          <Text style={styles.routeInfoDetail}>Distance: {routeDetails.distance}</Text>
-          <Text style={styles.routeInfoDetail}>Time: {routeDetails.duration}</Text>
-          <Text style={styles.routeInfoDetail}>CO₂ Emission: {routeDetails.co2Emission}</Text>
-          {selectedOptions.vehicle === 'car' && routeDetails.batteryUsage !== 'N/A' && (
-            <Text style={styles.routeInfoDetail}>Battery Usage: {routeDetails.batteryUsage}</Text>
-          )}
+          <Text style={styles.routeInfoDetail}>
+            Distance: {routeDetails.distance}
+          </Text>
+          <Text style={styles.routeInfoDetail}>
+            Time: {routeDetails.duration}
+          </Text>
+          <Text style={styles.routeInfoDetail}>
+            CO₂ Emission: {routeDetails.co2Emission}
+          </Text>
+          {selectedOptions.vehicle === 'car' &&
+            routeDetails.batteryUsage !== 'N/A' && (
+              <Text style={styles.routeInfoDetail}>
+                Battery Usage: {routeDetails.batteryUsage}
+              </Text>
+            )}
           <TouchableOpacity style={styles.resetButton} onPress={resetRoute}>
             <Text style={styles.resetButtonText}>Reset Route</Text>
           </TouchableOpacity>
@@ -626,24 +678,26 @@ export default function MapScreen() {
               )}
 
               <Text style={styles.optionTitle}>Vehicle Type:</Text>
-              {['car', 'bike', 'walk', 'train', 'auto', 'cycle', 'taxi'].map((vehicle) => (
-                <TouchableOpacity
-                  key={vehicle}
-                  style={[
-                    styles.optionButton,
-                    selectedOptions.vehicle === vehicle &&
-                      styles.selectedOption,
-                  ]}
-                  onPress={() =>
-                    setSelectedOptions({
-                      ...selectedOptions,
-                      vehicle: vehicle as any,
-                    })
-                  }
-                >
-                  <Text style={styles.optionText}>{vehicle}</Text>
-                </TouchableOpacity>
-              ))}
+              {['car', 'bike', 'walk', 'train', 'auto', 'cycle', 'taxi'].map(
+                (vehicle) => (
+                  <TouchableOpacity
+                    key={vehicle}
+                    style={[
+                      styles.optionButton,
+                      selectedOptions.vehicle === vehicle &&
+                        styles.selectedOption,
+                    ]}
+                    onPress={() =>
+                      setSelectedOptions({
+                        ...selectedOptions,
+                        vehicle: vehicle as any,
+                      })
+                    }
+                  >
+                    <Text style={styles.optionText}>{vehicle}</Text>
+                  </TouchableOpacity>
+                )
+              )}
 
               <TouchableOpacity
                 style={styles.findRouteButton}
@@ -651,7 +705,7 @@ export default function MapScreen() {
                 disabled={loading}
               >
                 <Text style={styles.findRouteButtonText}>
-                  {loading ? "Finding Route..." : "Find Route"}
+                  {loading ? 'Finding Route...' : 'Find Route'}
                 </Text>
               </TouchableOpacity>
 
@@ -774,7 +828,7 @@ const styles = StyleSheet.create({
   },
   recenterButton: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 90,
     right: 20,
     backgroundColor: 'white',
     borderRadius: 30,
@@ -793,7 +847,7 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 90,
     right: 80,
     backgroundColor: 'white',
     borderRadius: 30,
@@ -812,7 +866,7 @@ const styles = StyleSheet.create({
   },
   aiButton: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 90,
     right: 140,
     backgroundColor: '#4285F4',
     borderRadius: 30,
@@ -846,7 +900,7 @@ const styles = StyleSheet.create({
   },
   routeInfoCard: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 150,
     left: 20,
     right: 20,
     backgroundColor: 'white',
