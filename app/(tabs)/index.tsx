@@ -18,7 +18,7 @@ import { useUser } from '@clerk/clerk-expo'
 import { v5 as uuidv5 } from 'uuid'
 import { getUUIDFromClerkID } from '@/lib/userService'
 import { calculateGreenPoints, saveRoute } from '@/lib/routeService'
-import { TOMTOM_API_KEY } from '../../constants/Config'
+import { TOMTOM_API_KEY, isTomTomKeyValid } from '../../constants/Config'
 
 interface Location {
   latitude: number
@@ -128,6 +128,15 @@ export default function TabOneScreen() {
         return
       }
 
+      // Validate TomTom API key first
+      if (!isTomTomKeyValid()) {
+        Alert.alert(
+          'API Key Error',
+          'The TomTom API key appears to be invalid. The map may not load correctly.',
+          [{ text: 'OK' }]
+        )
+      }
+
       let location = await Location.getCurrentPositionAsync({})
       setUserLocation({
         latitude: location.coords.latitude,
@@ -140,7 +149,11 @@ export default function TabOneScreen() {
 
   const initMap = (latitude: number, longitude: number) => {
     console.log('Initializing map with coordinates:', latitude, longitude);
-    console.log('Using TomTom API key:', TOMTOM_API_KEY);
+
+    // Don't log the full API key in production - this is for debugging only
+    if (__DEV__) {
+      console.log('Using TomTom API key starting with:', TOMTOM_API_KEY.substring(0, 5) + '...');
+    }
 
     const html = `
     <!DOCTYPE html>
@@ -154,13 +167,53 @@ export default function TabOneScreen() {
         .marker-start { background-color: green; border-radius: 50%; }
         .marker-end { background-color: red; border-radius: 50%; }
         .touch-feedback { width: 40px; height: 40px; background-color: rgba(0,0,0,0.2); border-radius: 50%; position: absolute; }
+        .error-overlay { position: absolute; top: 0; left: 0; right: 0; padding: 10px; background-color: rgba(255,0,0,0.7); color: white; font-size: 12px; z-index: 1000; }
       </style>
     </head>
     <body>
       <div id="map"></div>
-      <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-web.min.js"></script>
-      <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/services/services-web.min.js"></script>
+      <div id="error-message" class="error-overlay" style="display:none;"></div>
       <script>
+        // Helper function to display errors on screen for debugging
+        function showError(message) {
+          console.error("Map error:", message);
+          const errorElement = document.getElementById('error-message');
+          errorElement.textContent = "Map Error: " + message;
+          errorElement.style.display = 'block';
+
+          // Send error to React Native
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'mapError',
+              error: message
+            }));
+          }
+        }
+
+        // Global error handler
+        window.onerror = function(message, source, lineno, colno, error) {
+          showError('JS Error: ' + message + ' at line ' + lineno);
+          return true;
+        };
+
+        // Load TomTom SDK with error handling
+        function loadScript(url, callback) {
+          var script = document.createElement('script');
+          script.type = 'text/javascript';
+          script.src = url;
+          script.onerror = function() {
+            showError('Failed to load TomTom SDK from: ' + url);
+          };
+          script.onload = callback;
+          document.head.appendChild(script);
+        }
+
+        // First load the maps SDK
+        loadScript('https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-web.min.js', function() {
+          // Then load the services SDK
+          loadScript('https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/services/services-web.min.js', initializeMap);
+        });
+
         var map;
         var startMarker;
         var endMarker;
@@ -169,8 +222,20 @@ export default function TabOneScreen() {
         function initializeMap() {
           console.log('Initializing TomTom map...');
           try {
+            if (!tt) {
+              showError('TomTom SDK not loaded (tt is undefined)');
+              return;
+            }
+
+            // Check if API key is provided
+            const apiKey = '${TOMTOM_API_KEY}';
+            if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+              showError('TomTom API key is missing or invalid');
+              return;
+            }
+
             map = tt.map({
-              key: '${TOMTOM_API_KEY}',
+              key: apiKey,
               container: 'map',
               center: [${longitude}, ${latitude}],
               zoom: 13
@@ -182,11 +247,18 @@ export default function TabOneScreen() {
             });
 
             map.on('error', function(e) {
-              console.error('Map error:', e);
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'mapError',
-                error: e.error
-              }));
+              console.error('TomTom map error:', e);
+              let errorMessage = 'Unknown map error';
+
+              if (e.error) {
+                errorMessage = typeof e.error === 'string' ? e.error : JSON.stringify(e.error);
+              } else if (e.message) {
+                errorMessage = e.message;
+              } else {
+                errorMessage = JSON.stringify(e);
+              }
+
+              showError(errorMessage);
             });
 
             map.on('click', function(e) {
@@ -208,121 +280,217 @@ export default function TabOneScreen() {
             });
           } catch (error) {
             console.error('Error initializing map:', error);
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'mapError',
-              error: error.message
-            }));
+            showError(error.message || 'Failed to initialize map');
           }
         }
 
         function addStartMarker(lat, lng) {
-          if (startMarker) {
-            startMarker.remove();
+          try {
+            if (!map) {
+              showError('Map not initialized');
+              return;
+            }
+
+            if (startMarker) {
+              startMarker.remove();
+            }
+
+            var el = document.createElement('div');
+            el.className = 'marker marker-start';
+
+            startMarker = new tt.Marker({element: el})
+              .setLngLat([lng, lat])
+              .addTo(map);
+
+            // Notify React Native about success
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'markerAdded',
+              markerType: 'start'
+            }));
+          } catch (error) {
+            showError('Failed to add start marker: ' + error.message);
           }
-
-          var el = document.createElement('div');
-          el.className = 'marker marker-start';
-
-          startMarker = new tt.Marker({element: el})
-            .setLngLat([lng, lat])
-            .addTo(map);
         }
 
         function addEndMarker(lat, lng) {
-          if (endMarker) {
-            endMarker.remove();
+          try {
+            if (!map) {
+              showError('Map not initialized');
+              return;
+            }
+
+            if (endMarker) {
+              endMarker.remove();
+            }
+
+            var el = document.createElement('div');
+            el.className = 'marker marker-end';
+
+            endMarker = new tt.Marker({element: el})
+              .setLngLat([lng, lat])
+              .addTo(map);
+
+            // Notify React Native about success
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'markerAdded',
+              markerType: 'end'
+            }));
+          } catch (error) {
+            showError('Failed to add end marker: ' + error.message);
           }
-
-          var el = document.createElement('div');
-          el.className = 'marker marker-end';
-
-          endMarker = new tt.Marker({element: el})
-            .setLngLat([lng, lat])
-            .addTo(map);
         }
 
         function clearRoute() {
-          if (routeLayer) {
-            map.removeLayer(routeLayer.id);
-            map.removeSource(routeLayer.id);
-            routeLayer = null;
-          }
+          try {
+            if (!map) {
+              showError('Map not initialized');
+              return;
+            }
 
-          if (startMarker) {
-            startMarker.remove();
-            startMarker = null;
-          }
+            if (routeLayer) {
+              if (map.getLayer(routeLayer.id)) {
+                map.removeLayer(routeLayer.id);
+              }
+              if (map.getSource(routeLayer.sourceId)) {
+                map.removeSource(routeLayer.sourceId);
+              }
+              routeLayer = null;
+            }
 
-          if (endMarker) {
-            endMarker.remove();
-            endMarker = null;
+            if (startMarker) {
+              startMarker.remove();
+              startMarker = null;
+            }
+
+            if (endMarker) {
+              endMarker.remove();
+              endMarker = null;
+            }
+
+            // Notify React Native about success
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'routeCleared'
+            }));
+          } catch (error) {
+            showError('Failed to clear route: ' + error.message);
           }
         }
 
         function clearMarkers() {
-          if (startMarker) {
-            startMarker.remove();
-            startMarker = null;
-          }
+          try {
+            if (!map) {
+              console.log('Map not initialized yet');
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'markersCleared',
+                status: 'warning',
+                message: 'Map not initialized yet'
+              }));
+              return;
+            }
 
-          if (endMarker) {
-            endMarker.remove();
-            endMarker = null;
+            if (startMarker) {
+              startMarker.remove();
+              startMarker = null;
+            }
+
+            if (endMarker) {
+              endMarker.remove();
+              endMarker = null;
+            }
+
+            // Notify React Native about success
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'markersCleared',
+              status: 'success'
+            }));
+          } catch (error) {
+            console.error('Error clearing markers:', error);
+            showError('Failed to clear markers: ' + error.message);
           }
         }
 
         function displayRoute(routeGeoJson) {
-          if (routeLayer) {
-            map.removeLayer(routeLayer.id);
-            map.removeSource(routeLayer.id);
-          }
-
-          var sourceId = 'route-source-' + Date.now();
-          var layerId = 'route-layer-' + Date.now();
-
-          map.addSource(sourceId, {
-            type: 'geojson',
-            data: routeGeoJson
-          });
-
-          map.addLayer({
-            id: layerId,
-            type: 'line',
-            source: sourceId,
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': '#2196F3',
-              'line-width': 6
+          try {
+            if (!map) {
+              showError('Map not initialized');
+              return;
             }
-          });
 
-          routeLayer = {
-            id: layerId,
-            sourceId: sourceId
-          };
+            if (routeLayer) {
+              if (map.getLayer(routeLayer.id)) {
+                map.removeLayer(routeLayer.id);
+              }
+              if (map.getSource(routeLayer.sourceId)) {
+                map.removeSource(routeLayer.sourceId);
+              }
+            }
 
-          var coordinates = routeGeoJson.features[0].geometry.coordinates;
-          var bounds = coordinates.reduce(function(bounds, coord) {
-            return bounds.extend(coord);
-          }, new tt.LngLatBounds(coordinates[0], coordinates[0]));
+            var sourceId = 'route-source-' + Date.now();
+            var layerId = 'route-layer-' + Date.now();
 
-          map.fitBounds(bounds, {
-            padding: {top: 50, bottom: 50, left: 50, right: 50},
-            maxZoom: 15
-          });
+            map.addSource(sourceId, {
+              type: 'geojson',
+              data: routeGeoJson
+            });
+
+            map.addLayer({
+              id: layerId,
+              type: 'line',
+              source: sourceId,
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              paint: {
+                'line-color': '#2196F3',
+                'line-width': 6
+              }
+            });
+
+            routeLayer = {
+              id: layerId,
+              sourceId: sourceId
+            };
+
+            var coordinates = routeGeoJson.features[0].geometry.coordinates;
+            var bounds = coordinates.reduce(function(bounds, coord) {
+              return bounds.extend(coord);
+            }, new tt.LngLatBounds(coordinates[0], coordinates[0]));
+
+            map.fitBounds(bounds, {
+              padding: {top: 50, bottom: 50, left: 50, right: 50},
+              maxZoom: 15
+            });
+
+            // Notify React Native about success
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'routeDisplayed'
+            }));
+          } catch (error) {
+            showError('Failed to display route: ' + error.message);
+          }
         }
 
         function centerOnLocation(lat, lng, zoom) {
-          map.flyTo({
-            center: [lng, lat],
-            zoom: zoom || 15
-          });
-        }
+          try {
+            if (!map) {
+              showError('Map not initialized');
+              return;
+            }
 
-        initializeMap();
+            map.flyTo({
+              center: [lng, lat],
+              zoom: zoom || 15
+            });
+
+            // Notify React Native about success
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'mapCentered'
+            }));
+          } catch (error) {
+            showError('Failed to center map: ' + error.message);
+          }
+        }
       </script>
     </body>
     </html>
@@ -378,10 +546,20 @@ export default function TabOneScreen() {
         {
           text: 'Reset',
           onPress: () => {
-            setStartLocation(null)
-            setEndLocation(null)
-            // Only clear the markers, but keep the route layer
-            webViewRef.current?.injectJavaScript('clearMarkers(); true;')
+            // Make sure the WebView is properly initialized
+            if (webViewRef.current) {
+              try {
+                setStartLocation(null);
+                setEndLocation(null);
+                // Use the improved clearMarkers function in the WebView
+                webViewRef.current.injectJavaScript('try { clearMarkers(); } catch(e) { console.error("Error in clearMarkers:", e); } true;');
+              } catch (error) {
+                console.error('Error resetting map markers:', error);
+                Alert.alert('Error', 'Failed to reset map markers. Please try again.');
+              }
+            } else {
+              Alert.alert('Error', 'Map is not initialized yet. Please wait a moment and try again.');
+            }
           },
           style: 'destructive'
         }
@@ -409,9 +587,23 @@ export default function TabOneScreen() {
         console.error('Map error received from WebView:', data.error);
         Alert.alert(
           'Map Error',
-          'There was an error loading the map. Please try again later.',
+          `There was an error loading the map: ${data.error}. Please check your connection and API key.`,
           [{ text: 'OK' }]
         );
+      } else if (data.type === 'markersCleared') {
+        if (data.status === 'success') {
+          console.log('Markers cleared successfully');
+        } else {
+          console.warn('Warning clearing markers:', data.message);
+        }
+      } else if (data.type === 'routeCleared') {
+        console.log('Route cleared successfully');
+      } else if (data.type === 'markerAdded') {
+        console.log(`${data.markerType} marker added successfully`);
+      } else if (data.type === 'routeDisplayed') {
+        console.log('Route displayed successfully');
+      } else if (data.type === 'mapCentered') {
+        console.log('Map centered successfully');
       }
     } catch (error) {
       console.error('Error parsing WebView message:', error)

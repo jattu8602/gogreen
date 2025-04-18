@@ -82,15 +82,13 @@ export default function LeaderboardScreen() {
           const userData: UserData = {
             id: getUUIDFromClerkID(user.id),
             clerk_id: user.id,
-            full_name: user.fullName || '',  // Store exactly what comes from Clerk
             username: user.username || '',   // Store exactly what comes from Clerk
             green_score: 0,                  // Initial score for new users
             profile_url: user.imageUrl || '',
           }
 
-          // If both name and username are missing, generate a display name
-          if (!userData.full_name && !userData.username) {
-            userData.full_name = 'Green User';
+          // If username is missing, generate a display name
+          if (!userData.username) {
             userData.username = `eco_${user.id.substring(0, 6)}`;
           }
 
@@ -147,16 +145,16 @@ export default function LeaderboardScreen() {
         let needsUpdate = false;
 
         for (const existingUser of enhancedUsers) {
-          // Fix missing profile image or username
+          // Fix missing profile image
           if (!existingUser.profile_url || existingUser.profile_url === '') {
             existingUser.profile_url = `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 30) + 1}.jpg`;
             needsUpdate = true;
           }
 
           // Fix missing or anonymous username
-          if (!existingUser.full_name || existingUser.full_name === 'Anonymous User') {
-            const names = ['Alex Green', 'Jamie Eco', 'Taylor Parks', 'Morgan Rivers', 'Casey Woods', 'Riley Nature', 'Jordan Earth', 'Quinn Forest'];
-            existingUser.full_name = names[Math.floor(Math.random() * names.length)];
+          if (!existingUser.username || existingUser.username === 'Anonymous User') {
+            const names = ['AlexGreen', 'JamieEco', 'TaylorParks', 'MorganRivers', 'CaseyWoods', 'RileyNature', 'JordanEarth', 'QuinnForest'];
+            existingUser.username = names[Math.floor(Math.random() * names.length)];
             needsUpdate = true;
           }
 
@@ -164,7 +162,7 @@ export default function LeaderboardScreen() {
           if (needsUpdate) {
             try {
               await createOrUpdateUser(existingUser);
-              console.log(`Enhanced user: ${existingUser.full_name}`);
+              console.log(`Enhanced user: ${existingUser.username}`);
             } catch (err) {
               console.error('Error updating user profile:', err);
             }
@@ -201,35 +199,30 @@ export default function LeaderboardScreen() {
             const testUsers = [
               {
                 id: 'test-user-1',
-                full_name: 'Jane Smith',
                 username: 'janesmith',
                 green_score: 150,
                 profile_url: 'https://randomuser.me/api/portraits/women/12.jpg'
               },
               {
                 id: 'test-user-2',
-                full_name: 'John Doe',
                 username: 'johndoe',
                 green_score: 120,
                 profile_url: 'https://randomuser.me/api/portraits/men/15.jpg'
               },
               {
                 id: 'test-user-3',
-                full_name: 'Alice Johnson',
                 username: 'alice',
                 green_score: 90,
                 profile_url: 'https://randomuser.me/api/portraits/women/22.jpg'
               },
               {
                 id: 'test-user-4',
-                full_name: 'Robert Green',
                 username: 'rgreen',
                 green_score: 200,
                 profile_url: 'https://randomuser.me/api/portraits/men/33.jpg'
               },
               {
                 id: 'test-user-5',
-                full_name: 'Sara Lee',
                 username: 'saralee',
                 green_score: 170,
                 profile_url: 'https://randomuser.me/api/portraits/women/28.jpg'
@@ -245,7 +238,6 @@ export default function LeaderboardScreen() {
             const userData: UserData = {
               id: getUUIDFromClerkID(user.id),
               clerk_id: user.id,
-              full_name: user.fullName || 'Green User',
               username: user.username || `ecofriend_${Math.floor(Math.random() * 1000)}`,
               green_score: Math.floor(Math.random() * 200) + 50, // Random score for testing
               profile_url: user.imageUrl || 'https://randomuser.me/api/portraits/men/40.jpg',
@@ -449,10 +441,10 @@ export default function LeaderboardScreen() {
     const displayName = (() => {
       // First priority: If this is current user, use Clerk's data directly
       if (isCurrentUser && user) {
-        return user.fullName || user.username || item.full_name || item.username || 'Anonymous User';
+        return user.username || user.fullName || item.username || 'Anonymous User';
       }
       // Second priority: Use Firebase data
-      return item.full_name || item.username || 'Anonymous User';
+      return item.username || 'Anonymous User';
     })();
 
     return (
@@ -536,7 +528,7 @@ export default function LeaderboardScreen() {
 
                 <View style={styles.profileInfo}>
                   <ThemedText style={styles.userNameTitle}>
-                    {user?.fullName || user?.username}
+                    {user?.username || user?.fullName || 'Green User'}
                   </ThemedText>
 
                   <ThemedText style={styles.greenScoreText}>

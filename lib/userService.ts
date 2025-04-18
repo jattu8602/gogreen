@@ -22,7 +22,6 @@ const NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
 export interface UserData {
   id: string
   clerk_id?: string
-  full_name: string
   username: string
   profile_url?: string
   green_score: number
@@ -55,7 +54,7 @@ export const fetchLeaderboard = async (): Promise<UserData[]> => {
     for (let i = 0; i < docs.length; i++) {
       const docData = docs[i]
       const userData = docData.data() as Omit<UserData, 'rank'>
-      console.log(`Processing user: ${userData.full_name || userData.username}`)
+      console.log(`Processing user: ${userData.username}`)
 
       users.push({
         ...userData,
@@ -135,7 +134,6 @@ export const createOrUpdateUser = async (
       const newUser: UserData = {
         id: userData.id,
         clerk_id: userData.clerk_id || undefined,
-        full_name: userData.full_name || '',
         username: userData.username || '',
         profile_url: userData.profile_url || undefined,
         green_score: userData.green_score || 0,
@@ -169,7 +167,6 @@ export const updateUserProfileImage = async (
         id: userId,
         profile_url: imageUrl,
         green_score: 0,
-        full_name: '',
         username: '',
       })
       return
