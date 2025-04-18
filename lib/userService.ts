@@ -126,7 +126,33 @@ export const createOrUpdateUser = async (
 
     if (userSnap.exists()) {
       // Update existing user
-      await updateDoc(userRef, { ...userData })
+      const existingData = userSnap.data() as UserData;
+
+      // Create update object with only the fields that should be updated
+      const updateData: Partial<UserData> = {};
+
+      // Only update fields that are provided in userData
+      if (userData.clerk_id !== undefined) updateData.clerk_id = userData.clerk_id;
+      if (userData.username !== undefined) updateData.username = userData.username;
+      if (userData.profile_url !== undefined) updateData.profile_url = userData.profile_url;
+
+      // Important: Only update green_score if explicitly provided with a non-zero value
+      // This prevents accidentally resetting the score to 0
+      if (userData.green_score !== undefined) {
+        // If we're trying to set green_score to 0, only do it if the user is new
+        // or if we specifically want to reset the score
+        if (userData.green_score !== 0 || existingData.green_score === undefined) {
+          updateData.green_score = userData.green_score;
+        }
+      }
+
+      console.log(`Updating user ${userData.id} with data:`, updateData);
+
+      // Only update if we have fields to update
+      if (Object.keys(updateData).length > 0) {
+        await updateDoc(userRef, updateData);
+      }
+
       const updatedSnap = await getDoc(userRef)
       return updatedSnap.data() as UserData
     } else {
@@ -139,6 +165,7 @@ export const createOrUpdateUser = async (
         green_score: userData.green_score || 0,
       }
 
+      console.log(`Creating new user ${userData.id} with data:`, newUser);
       await setDoc(userRef, newUser)
       return newUser
     }
@@ -190,12 +217,28 @@ export const addGreenPoints = async (
   points: number
 ): Promise<void> => {
   try {
-    const userRef = doc(db, 'users', userId)
+    console.log(`Adding ${points} green points to user ${userId}`);
+
+    // Get the current user data first to verify the current score
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      console.error('User document does not exist for ID:', userId);
+      throw new Error(`User with ID ${userId} not found`);
+    }
+
+    const userData = userSnap.data() as UserData;
+    console.log(`Current green score for user ${userId}: ${userData.green_score}`);
+
+    // Update with increment operation
     await updateDoc(userRef, {
       green_score: increment(points),
-    })
+    });
+
+    console.log(`Added ${points} points. New score should be: ${userData.green_score + points}`);
   } catch (error) {
-    console.error('Error adding green points:', error)
-    throw error
+    console.error('Error adding green points:', error);
+    throw error;
   }
 }

@@ -27,6 +27,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { router } from 'expo-router'
 import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
+import { useFocusEffect } from '@react-navigation/native'
 
 // Import Firebase services
 import {
@@ -93,6 +94,18 @@ export default function LeaderboardScreen() {
           }
 
           console.log('Saving user data to Firebase:', userData);
+
+          // Make sure green_score is explicitly set to 0 if it's a new user
+          const existingUser = await getUserById(userData.id);
+          if (!existingUser) {
+            console.log('No existing user found - creating new user with green_score of 0');
+            userData.green_score = 0;
+          } else {
+            console.log(`Existing user found with green_score: ${existingUser.green_score}`);
+            // Keep the existing score if updating the user
+            userData.green_score = existingUser.green_score;
+          }
+
           await createOrUpdateUser(userData);
           console.log('User data successfully saved to Firebase');
 
@@ -138,8 +151,19 @@ export default function LeaderboardScreen() {
       const rankedUsers = await fetchLeaderboardData()
       console.log(`Leaderboard fetch returned ${rankedUsers?.length || 0} users`)
 
-      // Check if we need to enhance existing users or add test users
       if (rankedUsers && rankedUsers.length > 0) {
+        // Log user scores for debugging purposes
+        if (isSignedIn && user) {
+          const userUUID = getUUIDFromClerkID(user.id)
+          const currentUser = rankedUsers.find(u => u.id === userUUID)
+
+          if (currentUser) {
+            console.log(`Current user ${currentUser.username} has green_score: ${currentUser.green_score}`)
+          } else {
+            console.log(`Current user with ID ${userUUID} not found in leaderboard results`)
+          }
+        }
+
         // We have users but let's check if they need profile images or better names
         const enhancedUsers = [...rankedUsers];
         let needsUpdate = false;
@@ -432,6 +456,17 @@ export default function LeaderboardScreen() {
   const onRefresh = useCallback(() => {
     fetchLeaderboard()
   }, [])
+
+  // Add this useFocusEffect hook to refresh leaderboard when the tab becomes active
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Leaderboard screen focused - refreshing data');
+      fetchLeaderboard();
+      return () => {
+        // cleanup if needed
+      };
+    }, [isSignedIn])
+  );
 
   // Render a user item in the leaderboard
   const renderUserItem = ({ item }: { item: UserData }) => {

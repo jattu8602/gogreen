@@ -916,15 +916,15 @@ export default function TabOneScreen() {
       return
 
     try {
-      const baselineEmission = 0.2
-      const actualEmission = parseFloat(
-        routeDetails.co2Emission.replace(' kg', '')
-      )
       const distance = parseFloat(routeDetails.distance.replace(' km', ''))
 
+      // Make sure we have the user UUID
       const userUUID = getUUIDFromClerkID(user.id)
 
+      // Use the green score directly from the selected vehicle
       const greenPoints = selectedVehicle.greenScore;
+
+      console.log(`Saving route with ${greenPoints} green points for user ${userUUID}`);
 
       const routeData = {
         user_id: userUUID,
@@ -934,12 +934,13 @@ export default function TabOneScreen() {
         end_lng: endLocation.longitude,
         distance: distance,
         duration: routeDetails.duration,
-        co2_emission: actualEmission,
+        co2_emission: parseFloat(selectedVehicle.co2Emission.replace(' kg', '')),
         vehicle_type: selectedVehicle.vehicle,
         route_type: selectedOptions.type,
         green_points: greenPoints,
       }
 
+      // Save the route data which should also add green points
       await saveRoute(routeData)
 
       setRouteSaved(true)

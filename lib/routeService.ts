@@ -35,6 +35,14 @@ export const saveRoute = async (
   routeData: Omit<RouteHistory, 'id' | 'created_at'>
 ): Promise<string> => {
   try {
+    console.log(`Saving route for user ${routeData.user_id} with ${routeData.green_points} points`);
+
+    // Validate green points
+    if (typeof routeData.green_points !== 'number' || isNaN(routeData.green_points)) {
+      console.error('Invalid green points value:', routeData.green_points);
+      routeData.green_points = 10; // Default to 10 points if invalid
+    }
+
     // Add timestamp
     const routeWithTimestamp = {
       ...routeData,
@@ -46,8 +54,10 @@ export const saveRoute = async (
       collection(db, 'route_history'),
       routeWithTimestamp
     )
+    console.log(`Route saved with ID: ${docRef.id}`);
 
     // Add points to user's score
+    console.log(`Now adding ${routeData.green_points} green points to user ${routeData.user_id}`);
     await addGreenPoints(routeData.user_id, routeData.green_points)
 
     return docRef.id
