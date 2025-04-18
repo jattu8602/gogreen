@@ -27,7 +27,14 @@ interface Location {
 
 interface RouteOption {
   type: 'fastest' | 'cost-effective' | 'low-traffic' | 'long-drive'
-  vehicle: 'car' | 'bike' | 'walk' | 'train' | 'auto' | 'cycle' | 'taxi'
+}
+
+interface VehicleRecommendation {
+  vehicle: 'car' | 'bike' | 'walk' | 'train' | 'auto' | 'cycle' | 'taxi' | 'bus' | 'metro' | 'rickshaw'
+  greenScore: number
+  co2Emission: string
+  isElectric?: boolean
+  isCNG?: boolean
 }
 
 interface RouteDetails {
@@ -35,6 +42,8 @@ interface RouteDetails {
   duration: string
   co2Emission: string
   batteryUsage?: string
+  recommendedVehicles?: VehicleRecommendation[]
+  selectedVehicle?: VehicleRecommendation
 }
 
 // TomTom routing type mapping
@@ -73,6 +82,18 @@ const getTomTomVehicleType = (vehicle: string): string => {
   }
 }
 
+// Define tree-themed colors to match the rest of the app
+const COLORS = {
+  leafGreen: '#22C55E', // Vibrant leaf green for active items
+  darkGreen: '#166534', // Darker green for secondary elements
+  bark: '#854D0E', // Brown bark color for accents
+  lightBark: '#A16207', // Lighter brown for secondary elements
+  soil: '#57534E', // Dark soil color for inactive items
+  paleGreen: 'rgba(34, 197, 94, 0.1)', // Transparent green for backgrounds
+  white: '#FFFFFF', // White for contrast
+  lightestGreen: '#DCFCE7', // Very light green for backgrounds
+}
+
 export default function TabOneScreen() {
   const webViewRef = useRef<WebView>(null)
   const [userLocation, setUserLocation] = useState<Location | null>(null)
@@ -83,8 +104,9 @@ export default function TabOneScreen() {
   const [showOptions, setShowOptions] = useState(false)
   const [selectedOptions, setSelectedOptions] = useState<RouteOption>({
     type: 'fastest',
-    vehicle: 'car',
   })
+  const [recommendedVehicles, setRecommendedVehicles] = useState<VehicleRecommendation[]>([])
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleRecommendation | null>(null)
   const [routeInfo, setRouteInfo] = useState('')
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null)
   const [loading, setLoading] = useState(false)
@@ -237,6 +259,18 @@ export default function TabOneScreen() {
           }
         }
 
+        function clearMarkers() {
+          if (startMarker) {
+            startMarker.remove();
+            startMarker = null;
+          }
+
+          if (endMarker) {
+            endMarker.remove();
+            endMarker = null;
+          }
+        }
+
         function displayRoute(routeGeoJson) {
           if (routeLayer) {
             map.removeLayer(routeLayer.id);
@@ -330,6 +364,31 @@ export default function TabOneScreen() {
     webViewRef.current?.injectJavaScript('clearRoute(); true;')
   }
 
+  // Function to reset just the map markers without affecting route data
+  const resetMapMarkers = () => {
+    // Show confirmation alert before clearing markers
+    Alert.alert(
+      'Reset Map Markers',
+      'Are you sure you want to remove all markers from the map?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Reset',
+          onPress: () => {
+            setStartLocation(null)
+            setEndLocation(null)
+            // Only clear the markers, but keep the route layer
+            webViewRef.current?.injectJavaScript('clearMarkers(); true;')
+          },
+          style: 'destructive'
+        }
+      ]
+    )
+  }
+
   const handleWebViewMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data)
@@ -419,23 +478,23 @@ export default function TabOneScreen() {
     setAIDescriptionLoading(true)
 
     const fallbackDescription =
-      `This is a ${selectedOptions.type} route by ${selectedOptions.vehicle}.\n\n` +
+      `This is a ${selectedOptions.type} route.\n\n` +
       `Distance: ${routeDetails?.distance || 'Unknown'}\n` +
       `Estimated Time: ${routeDetails?.duration || 'Unknown'}\n` +
       `CO₂ Emission: ${routeDetails?.co2Emission || 'Unknown'}\n` +
-      (selectedOptions.vehicle === 'car' && routeDetails?.batteryUsage !== 'N/A'
+      (selectedVehicle?.vehicle === 'car' && routeDetails?.batteryUsage !== 'N/A'
         ? `Battery Usage: ${routeDetails?.batteryUsage}\n\n`
         : '\n') +
       `Plan ahead and drive safely!`
 
     try {
       const mockDescription =
-        `Your ${selectedOptions.type} route by ${selectedOptions.vehicle} will take approximately ${routeDetails?.duration} to travel ${routeDetails?.distance}.\n\n` +
+        `Your ${selectedOptions.type} route will take approximately ${routeDetails?.duration} to travel ${routeDetails?.distance}.\n\n` +
         `Key points on this journey:\n` +
         `• The route follows main roads with moderate traffic\n` +
         `• You may encounter traffic signals at major intersections\n` +
         `• CO₂ emission for this trip is estimated at ${routeDetails?.co2Emission}\n` +
-        (selectedOptions.vehicle === 'car'
+        (selectedVehicle?.vehicle === 'car'
           ? `• Electric vehicle battery usage: approximately ${routeDetails?.batteryUsage}\n\n`
           : '\n') +
         `Tips:\n` +
@@ -449,7 +508,7 @@ export default function TabOneScreen() {
             : 'This scenic route is longer but more enjoyable'
         }\n` +
         `• Consider traveling outside peak hours for a smoother journey\n` +
-        `• The route is suitable for ${selectedOptions.vehicle} travel`
+        `• The route is suitable for ${selectedVehicle?.vehicle} travel`
 
       setAIRouteDescription(mockDescription)
       setShowAIDescription(true)
@@ -462,6 +521,101 @@ export default function TabOneScreen() {
     }
   }
 
+  const determineRecommendedVehicles = (distance: number): VehicleRecommendation[] => {
+    const vehicles: VehicleRecommendation[] = [];
+
+    // For short distances (less than 3 km)
+    if (distance < 3) {
+      vehicles.push({
+        vehicle: 'walk',
+        greenScore: 50,
+        co2Emission: '0 kg',
+        isElectric: false,
+        isCNG: false
+      });
+      vehicles.push({
+        vehicle: 'bike',
+        greenScore: 40,
+        co2Emission: '0 kg',
+        isElectric: false,
+        isCNG: false
+      });
+      vehicles.push({
+        vehicle: 'cycle',
+        greenScore: 45,
+        co2Emission: '0 kg',
+        isElectric: false,
+        isCNG: false
+      });
+    }
+
+    // For medium distances (less than 10 km)
+    if (distance < 10) {
+      vehicles.push({
+        vehicle: 'rickshaw',
+        greenScore: 30,
+        co2Emission: `${(distance * 0.05).toFixed(2)} kg`,
+        isElectric: true,
+        isCNG: false
+      });
+      vehicles.push({
+        vehicle: 'auto',
+        greenScore: 25,
+        co2Emission: `${(distance * 0.08).toFixed(2)} kg`,
+        isElectric: false,
+        isCNG: true
+      });
+    }
+
+    // For all distances
+    vehicles.push({
+      vehicle: 'car',
+      greenScore: 15,
+      co2Emission: `${(distance * 0.12).toFixed(2)} kg`,
+      isElectric: true,
+      isCNG: false
+    });
+    vehicles.push({
+      vehicle: 'taxi',
+      greenScore: 10,
+      co2Emission: `${(distance * 0.15).toFixed(2)} kg`,
+      isElectric: false,
+      isCNG: false
+    });
+
+    // For medium and long distances
+    if (distance >= 3) {
+      vehicles.push({
+        vehicle: 'bus',
+        greenScore: 35,
+        co2Emission: `${(distance * 0.04).toFixed(2)} kg`,
+        isElectric: false,
+        isCNG: true
+      });
+    }
+
+    // For longer distances
+    if (distance >= 5) {
+      vehicles.push({
+        vehicle: 'metro',
+        greenScore: 40,
+        co2Emission: `${(distance * 0.02).toFixed(2)} kg`,
+        isElectric: true,
+        isCNG: false
+      });
+      vehicles.push({
+        vehicle: 'train',
+        greenScore: 38,
+        co2Emission: `${(distance * 0.03).toFixed(2)} kg`,
+        isElectric: true,
+        isCNG: false
+      });
+    }
+
+    // Sort by green score (highest first)
+    return vehicles.sort((a, b) => b.greenScore - a.greenScore);
+  }
+
   const findRoute = async () => {
     setRouteSaved(false)
     if (!startLocation || !endLocation) return
@@ -470,7 +624,8 @@ export default function TabOneScreen() {
 
     try {
       const routeType = getTomTomRouteType(selectedOptions.type)
-      const vehicleType = getTomTomVehicleType(selectedOptions.vehicle)
+      // Use car as default for finding route
+      const vehicleType = 'car'
 
       const url = `https://api.tomtom.com/routing/1/calculateRoute/${startLocation.latitude},${startLocation.longitude}:${endLocation.latitude},${endLocation.longitude}/json?key=${TOMTOM_API_KEY}&routeType=${routeType}&vehicleHeading=90&sectionType=traffic&report=effectiveSettings&routeRepresentation=polyline&computeTravelTimeFor=all&traffic=true&travelMode=${vehicleType}`
 
@@ -493,44 +648,25 @@ export default function TabOneScreen() {
         const distanceKm = (summary.lengthInMeters / 1000).toFixed(1)
         const durationMin = Math.round(summary.travelTimeInSeconds / 60)
 
-        let co2Factor = 0
-        let batteryUsage = 'N/A'
+        // Generate vehicle recommendations based on distance
+        const distanceNumber = parseFloat(distanceKm);
+        const recommendations = determineRecommendedVehicles(distanceNumber);
+        setRecommendedVehicles(recommendations);
 
-        switch (selectedOptions.vehicle) {
-          case 'car':
-            co2Factor = 120
-            batteryUsage =
-              selectedOptions.type === 'fastest'
-                ? `${Math.round(Number(distanceKm) * 1.5)}%`
-                : `${Math.round(Number(distanceKm) * 1.2)}%`
-            break
-          case 'bike':
-          case 'cycle':
-          case 'walk':
-            co2Factor = 0
-            break
-          case 'train':
-            co2Factor = 40
-            break
-          case 'auto':
-          case 'taxi':
-            co2Factor = 150
-            break
-          default:
-            co2Factor = 100
-        }
-
-        const co2Emission = ((Number(distanceKm) * co2Factor) / 1000).toFixed(2)
+        // Set first recommendation as default
+        const defaultVehicle = recommendations[0];
+        setSelectedVehicle(defaultVehicle);
 
         setRouteDetails({
           distance: `${distanceKm} km`,
           duration: `${durationMin} mins`,
-          co2Emission: `${co2Emission} kg`,
-          batteryUsage: batteryUsage,
+          co2Emission: defaultVehicle.co2Emission,
+          recommendedVehicles: recommendations,
+          selectedVehicle: defaultVehicle
         })
 
         setRouteInfo(
-          `${selectedOptions.type} route by ${selectedOptions.vehicle}`
+          `${selectedOptions.type} route (${defaultVehicle.vehicle})`
         )
 
         const geoJson = {
@@ -569,12 +705,22 @@ export default function TabOneScreen() {
     }
   }
 
-  const refreshMap = () => {
-    setWebViewKey((prevKey) => prevKey + 1)
+  const selectVehicle = (vehicle: VehicleRecommendation) => {
+    setSelectedVehicle(vehicle);
+
+    if (routeDetails) {
+      setRouteDetails({
+        ...routeDetails,
+        co2Emission: vehicle.co2Emission,
+        selectedVehicle: vehicle
+      });
+    }
+
+    setRouteInfo(`${selectedOptions.type} route (${vehicle.vehicle})`);
   }
 
   const saveRouteData = async () => {
-    if (!isSignedIn || !user || !routeDetails || !startLocation || !endLocation)
+    if (!isSignedIn || !user || !routeDetails || !startLocation || !endLocation || !selectedVehicle)
       return
 
     try {
@@ -586,11 +732,7 @@ export default function TabOneScreen() {
 
       const userUUID = getUUIDFromClerkID(user.id)
 
-      const greenPoints = calculateGreenPoints(
-        distance,
-        selectedOptions.vehicle,
-        selectedOptions.type
-      )
+      const greenPoints = selectedVehicle.greenScore;
 
       const routeData = {
         user_id: userUUID,
@@ -601,7 +743,7 @@ export default function TabOneScreen() {
         distance: distance,
         duration: routeDetails.duration,
         co2_emission: actualEmission,
-        vehicle_type: selectedOptions.vehicle,
+        vehicle_type: selectedVehicle.vehicle,
         route_type: selectedOptions.type,
         green_points: greenPoints,
       }
@@ -690,6 +832,10 @@ export default function TabOneScreen() {
         <Text style={styles.recenterButtonText}>📍</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity style={styles.resetMapButton} onPress={resetMapMarkers}>
+        <Text style={styles.resetMapButtonText}>🧹</Text>
+      </TouchableOpacity>
+
       {routeCoordinates.length > 0 && (
         <TouchableOpacity
           style={styles.aiButton}
@@ -704,7 +850,7 @@ export default function TabOneScreen() {
         </TouchableOpacity>
       )}
 
-      {routeDetails && (
+      {routeDetails && routeDetails.recommendedVehicles && (
         <View style={styles.routeInfoCard}>
           <Text style={styles.routeInfoTitle}>{routeInfo}</Text>
           <Text style={styles.routeInfoDetail}>
@@ -716,12 +862,47 @@ export default function TabOneScreen() {
           <Text style={styles.routeInfoDetail}>
             CO₂ Emission: {routeDetails.co2Emission}
           </Text>
-          {selectedOptions.vehicle === 'car' &&
-            routeDetails.batteryUsage !== 'N/A' && (
-              <Text style={styles.routeInfoDetail}>
-                Battery Usage: {routeDetails.batteryUsage}
-              </Text>
-            )}
+
+          <Text style={styles.vehicleOptionsTitle}>Recommended Vehicles:</Text>
+          <ScrollView horizontal style={styles.vehicleOptions}>
+            {routeDetails.recommendedVehicles.map((vehicle, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.vehicleOption,
+                  selectedVehicle?.vehicle === vehicle.vehicle && styles.selectedVehicleOption
+                ]}
+                onPress={() => selectVehicle(vehicle)}
+              >
+                <Text style={styles.vehicleEmoji}>
+                  {vehicle.vehicle === 'car' ? '🚗' :
+                   vehicle.vehicle === 'bike' ? '🏍️' :
+                   vehicle.vehicle === 'walk' ? '🚶' :
+                   vehicle.vehicle === 'train' ? '🚆' :
+                   vehicle.vehicle === 'auto' ? '🛺' :
+                   vehicle.vehicle === 'cycle' ? '🚲' :
+                   vehicle.vehicle === 'taxi' ? '🚖' :
+                   vehicle.vehicle === 'bus' ? '🚌' :
+                   vehicle.vehicle === 'metro' ? '🚇' :
+                   vehicle.vehicle === 'rickshaw' ? '🛺' : '🚗'}
+                </Text>
+                <Text style={styles.vehicleName}>{vehicle.vehicle}</Text>
+                <View style={[styles.vehicleScoreBadge, { backgroundColor: vehicle.greenScore > 30 ? COLORS.leafGreen : vehicle.greenScore > 20 ? '#FFA500' : '#FF6347' }]}>
+                  <Text style={styles.vehicleScoreText}>+{vehicle.greenScore}</Text>
+                </View>
+                {vehicle.isElectric && (
+                  <View style={styles.vehicleTagBadge}>
+                    <Text style={styles.vehicleTagText}>Electric</Text>
+                  </View>
+                )}
+                {vehicle.isCNG && (
+                  <View style={styles.vehicleTagBadge}>
+                    <Text style={styles.vehicleTagText}>CNG</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
           <View style={styles.routeButtonsContainer}>
             <TouchableOpacity style={styles.resetButton} onPress={resetRoute}>
@@ -765,34 +946,11 @@ export default function TabOneScreen() {
                     ]}
                     onPress={() =>
                       setSelectedOptions({
-                        ...selectedOptions,
                         type: type as any,
                       })
                     }
                   >
                     <Text style={styles.optionText}>{type}</Text>
-                  </TouchableOpacity>
-                )
-              )}
-
-              <Text style={styles.optionTitle}>Vehicle Type:</Text>
-              {['car', 'bike', 'walk', 'train', 'auto', 'cycle', 'taxi'].map(
-                (vehicle) => (
-                  <TouchableOpacity
-                    key={vehicle}
-                    style={[
-                      styles.optionButton,
-                      selectedOptions.vehicle === vehicle &&
-                        styles.selectedOption,
-                    ]}
-                    onPress={() =>
-                      setSelectedOptions({
-                        ...selectedOptions,
-                        vehicle: vehicle as any,
-                      })
-                    }
-                  >
-                    <Text style={styles.optionText}>{vehicle}</Text>
                   </TouchableOpacity>
                 )
               )}
@@ -955,6 +1113,27 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   recenterButtonText: {
+    fontSize: 24,
+  },
+  resetMapButton: {
+    position: 'absolute',
+    bottom: 90,
+    left: 20,
+    backgroundColor: 'white',
+    borderRadius: 30,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#22C55E',
+  },
+  resetMapButtonText: {
     fontSize: 24,
   },
   aiButton: {
@@ -1131,6 +1310,68 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: 'white',
     textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  vehicleOptionsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 8,
+    color: COLORS.darkGreen,
+  },
+  vehicleOptions: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  vehicleOption: {
+    width: 90,
+    height: 110,
+    marginRight: 8,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: COLORS.paleGreen,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedVehicleOption: {
+    borderColor: COLORS.leafGreen,
+    borderWidth: 2,
+    backgroundColor: 'rgba(34, 197, 94, 0.2)',
+  },
+  vehicleEmoji: {
+    fontSize: 24,
+    marginBottom: 5,
+  },
+  vehicleName: {
+    fontSize: 14,
+    fontWeight: '500',
+    textTransform: 'capitalize',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  vehicleScoreBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  vehicleScoreText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  vehicleTagBadge: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  vehicleTagText: {
+    color: 'white',
+    fontSize: 10,
     fontWeight: 'bold',
   },
 })

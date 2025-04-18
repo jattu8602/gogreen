@@ -30,6 +30,7 @@ function CustomTabBackground() {
           borderTopWidth: 1,
           borderTopColor: COLORS.darkGreen,
           borderRadius: 15,
+          marginHorizontal: 20,
         },
       ]}
     />

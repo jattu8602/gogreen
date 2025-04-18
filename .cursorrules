@@ -1,0 +1,53 @@
+# GoGreen App - Eco-Friendly Travel and Navigation
+
+## Overview
+GoGreen is a mobile application built with React Native and Expo that helps users make environmentally conscious travel decisions. The app promotes sustainable transportation choices, eco-friendly travel planning, and rewards users with green points for making environmentally responsible choices.
+
+## Key Features
+- **Green Navigation**: An intelligent routing system that recommends the most eco-friendly transportation options based on distance, with real-time calculation of CO2 emissions and green scores
+- **Travel Planner**: AI-assisted travel planning with eco-friendly itineraries and recommendations for sustainable attractions
+- **Leaderboard**: A social gamification element that tracks users' green scores and ranks them against other environmentally conscious travelers
+- **Green Points System**: Users earn points for choosing eco-friendly transportation options, which are displayed on the leaderboard
+
+## Technology Stack
+- React Native & Expo
+- TypeScript
+- TomTom Maps API for navigation
+- Google Generative AI for travel planning
+- Clerk for authentication
+- Firebase for backend data storage
+
+## App Structure
+- `app/(auth)`: Authentication screens (login, signup)
+- `app/(tabs)`: Main tab navigation screens
+  - `index.tsx`: Map and navigation screen with eco-friendly route recommendations
+  - `travel-planner.tsx`: AI-powered travel planner with eco-friendly itineraries
+  - `leaderboard.tsx`: Sustainability leaderboard showing user rankings
+- `components/`: Reusable UI components
+- `lib/`: Services and utilities
+- `assets/`: Images and other static assets
+
+## Eco-Vehicle Categories
+The app intelligently suggests vehicles based on route distance:
+- **Short Distance (< 3km)**: Walking, cycling
+- **Medium Distance (< 10km)**: Electric rickshaws, CNG auto-rickshaws, electric bikes
+- **All Distances**: Electric cars, taxis, buses
+- **Longer Journeys (> 5km)**: Metro, trains
+
+## Green Points System
+Users earn points based on their transportation choices:
+- Walking: 50 points
+- Cycling: 45 points
+- Electric vehicles: 30-40 points
+- Public transport: 35-40 points
+- CNG vehicles: 25-30 points
+- Conventional vehicles: 10-15 points
+
+The points are cumulative and displayed on the leaderboard to encourage eco-friendly competition.
+
+## Development Guidelines
+- Use TypeScript for type safety
+- Follow the React Native best practices
+- Maintain consistent styling using the defined color palette in COLORS object
+- Ensure accessibility compliance
+- Optimize for both iOS and Android platforms

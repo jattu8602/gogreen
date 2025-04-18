@@ -41,27 +41,33 @@ export const getUUIDFromClerkID = (clerkId: string): string => {
  */
 export const fetchLeaderboard = async (): Promise<UserData[]> => {
   try {
+    console.log('Starting fetchLeaderboard function')
     const usersRef = collection(db, 'users')
     const q = query(usersRef, orderBy('green_score', 'desc'))
+
+    console.log('Executing Firestore query...')
     const querySnapshot = await getDocs(q)
+
+    console.log(`Query returned ${querySnapshot.docs.length} documents`)
 
     const users: UserData[] = []
     const docs = querySnapshot.docs
     for (let i = 0; i < docs.length; i++) {
-      const doc = docs[i]
-      const userData = doc.data() as Omit<UserData, 'rank'>
+      const docData = docs[i]
+      const userData = docData.data() as Omit<UserData, 'rank'>
+      console.log(`Processing user: ${userData.full_name || userData.username}`)
+
       users.push({
         ...userData,
         rank: i + 1,
       })
     }
 
+    console.log(`Returning ${users.length} ranked users`)
     return users
   } catch (error) {
     console.error('Error fetching leaderboard:', error)
-
     // Return an empty array instead of throwing an error
-    // This allows the app to continue functioning even if there are permission issues
     return []
   }
 }
