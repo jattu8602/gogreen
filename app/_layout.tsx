@@ -12,8 +12,9 @@ import 'react-native-reanimated'
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import * as SecureStore from 'expo-secure-store'
-import { Alert } from 'react-native'
+import { Alert, View, ActivityIndicator } from 'react-native'
 import Toast from 'react-native-toast-message'
+import FontAwesome from '@expo/vector-icons/FontAwesome'
 
 import { useColorScheme } from '@/hooks/useColorScheme'
 
@@ -131,9 +132,14 @@ function InitialLayout() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme()
-  const [loaded] = useFonts({
+  const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    ...FontAwesome.font,
   })
+
+  useEffect(() => {
+    if (error) throw error
+  }, [error])
 
   useEffect(() => {
     if (loaded) {
@@ -144,7 +150,11 @@ export default function RootLayout() {
 
   if (!loaded) {
     console.log('Fonts not loaded yet')
-    return null
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#22C55E" />
+      </View>
+    )
   }
 
   return (

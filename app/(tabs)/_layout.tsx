@@ -90,24 +90,27 @@ export default function TabLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: 'History',
+          title: 'Leaderboard',
           tabBarIcon: ({ color }) =>
             Platform.OS === 'ios' ? (
               // Use SF Symbols on iOS (these work natively)
-              <IconSymbol size={28} name="checklist" color={color} />
+              <IconSymbol size={28} name="trophy" color={color} />
             ) : (
               // Use Material Icons directly on Android/web
-              <MaterialIcons name="history" size={28} color={color} />
+              <MaterialIcons name="leaderboard" size={28} color={color} />
             ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.fill" color={color} />
-          ),
+          title: 'Travel Maps',
+          tabBarIcon: ({ color }) =>
+            Platform.OS === 'ios' ? (
+              <IconSymbol size={28} name="globe" color={color} />
+            ) : (
+              <MaterialIcons name="explore" size={28} color={color} />
+            ),
         }}
       />
     </Tabs>

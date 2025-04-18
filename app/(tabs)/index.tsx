@@ -14,6 +14,9 @@ import {
 import { WebView } from 'react-native-webview'
 import * as Location from 'expo-location'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { createClient } from '@supabase/supabase-js'
+import { useUser } from '@clerk/clerk-expo'
+import { v5 as uuidv5 } from 'uuid'
 
 interface Location {
   latitude: number
@@ -71,6 +74,20 @@ const getTomTomVehicleType = (vehicle: string): string => {
   }
 }
 
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL!,
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+// Function to convert Clerk user ID to a consistent UUID
+const getUUIDFromClerkID = (clerkId: string): string => {
+  // Use UUID v5 with a fixed namespace to generate consistent UUIDs
+  // This ensures the same Clerk ID always maps to the same UUID
+  const NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8' // UUID namespace
+  return uuidv5(clerkId, NAMESPACE)
+}
+
 export default function MapScreen() {
   const webViewRef = useRef<WebView>(null)
   const [userLocation, setUserLocation] = useState<Location | null>(null)
@@ -93,6 +110,8 @@ export default function MapScreen() {
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [webViewKey, setWebViewKey] = useState(1) // Key for refreshing WebView
   const [mapHtml, setMapHtml] = useState('')
+  const { user, isSignedIn } = useUser()
+  const [routeSaved, setRouteSaved] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -436,6 +455,7 @@ export default function MapScreen() {
   }
 
   const findRoute = async () => {
+    setRouteSaved(false)
     if (!startLocation || !endLocation) return
 
     setLoading(true)
@@ -550,6 +570,116 @@ export default function MapScreen() {
     setWebViewKey((prevKey) => prevKey + 1)
   }
 
+  // New function to save route data to Supabase
+  const saveRouteData = async () => {
+    if (!isSignedIn || !user || !routeDetails) return
+
+    try {
+      // Calculate green score from CO2 savings
+      const baselineEmission = 0.2 // kg per km (average)
+      const actualEmission = parseFloat(
+        routeDetails.co2Emission.replace(' kg', '')
+      )
+      const distance = parseFloat(routeDetails.distance.replace(' km', ''))
+
+      // Generate a UUID from the Clerk user ID
+      const userUUID = getUUIDFromClerkID(user.id)
+
+      // Calculate green points - more points for eco-friendly options
+      let greenPoints = 0
+
+      if (selectedOptions.vehicle === 'car') {
+        // For cars, give points based on route type efficiency
+        if (selectedOptions.type === 'cost-effective') {
+          greenPoints = Math.round(
+            (baselineEmission - actualEmission) * distance * 10
+          )
+        } else {
+          greenPoints = Math.round(
+            (baselineEmission - actualEmission) * distance * 5
+          )
+        }
+      } else if (['bike', 'cycle', 'walk'].includes(selectedOptions.vehicle)) {
+        // Bonus points for zero-emission transportation
+        greenPoints = Math.round(baselineEmission * distance * 20)
+      } else if (selectedOptions.vehicle === 'train') {
+        // Points for public transport
+        greenPoints = Math.round(baselineEmission * distance * 15)
+      } else {
+        // Default points
+        greenPoints = Math.round(
+          (baselineEmission - actualEmission) * distance * 5
+        )
+      }
+
+      // Ensure minimum points for using the app
+      greenPoints = Math.max(greenPoints, 5)
+
+      // First, save route history
+      const { error: routeError } = await supabase
+        .from('route_history')
+        .insert({
+          user_id: userUUID, // Use UUID instead of Clerk ID
+          start_lat: startLocation?.latitude,
+          start_lng: startLocation?.longitude,
+          end_lat: endLocation?.latitude,
+          end_lng: endLocation?.longitude,
+          distance: distance,
+          duration: routeDetails.duration,
+          co2_emission: actualEmission,
+          vehicle_type: selectedOptions.vehicle,
+          route_type: selectedOptions.type,
+          green_points: greenPoints,
+        })
+
+      if (routeError) throw routeError
+
+      // Then update user's green score
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('green_score, id')
+        .eq('id', userUUID) // Use UUID instead of Clerk ID
+        .single()
+
+      if (userError) {
+        // User doesn't exist yet, create profile
+        const { error: createError } = await supabase.from('users').insert({
+          id: userUUID, // Use UUID instead of Clerk ID
+          full_name: user.fullName || '',
+          username: user.username || '',
+          green_score: greenPoints,
+          clerk_id: user.id, // Store the original Clerk ID as a reference
+        })
+
+        if (createError) throw createError
+      } else {
+        // Update existing user
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            green_score: (userData.green_score || 0) + greenPoints,
+          })
+          .eq('id', userUUID) // Use UUID instead of Clerk ID
+
+        if (updateError) throw updateError
+      }
+
+      setRouteSaved(true)
+      Alert.alert(
+        'Route Saved!',
+        `You earned ${greenPoints} green points for this eco-friendly route!`,
+        [{ text: 'Nice!' }]
+      )
+    } catch (error) {
+      console.error('Error saving route data:', error)
+      Alert.alert(
+        'Save Failed',
+        'There was an error saving your route data. Please try again.',
+        [{ text: 'OK' }]
+      )
+    }
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -644,9 +774,29 @@ export default function MapScreen() {
                 Battery Usage: {routeDetails.batteryUsage}
               </Text>
             )}
-          <TouchableOpacity style={styles.resetButton} onPress={resetRoute}>
-            <Text style={styles.resetButtonText}>Reset Route</Text>
-          </TouchableOpacity>
+
+          <View style={styles.routeButtonsContainer}>
+            <TouchableOpacity style={styles.resetButton} onPress={resetRoute}>
+              <Text style={styles.resetButtonText}>Reset Route</Text>
+            </TouchableOpacity>
+
+            {isSignedIn && !routeSaved && (
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={saveRouteData}
+              >
+                <Text style={styles.saveButtonText}>Save & Earn Points</Text>
+              </TouchableOpacity>
+            )}
+
+            {!isSignedIn && (
+              <TouchableOpacity style={styles.signInButton}>
+                <Text style={styles.signInButtonText}>
+                  Sign In to Earn Points
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       )}
 
@@ -921,14 +1071,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 4,
   },
+  routeButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
   resetButton: {
     backgroundColor: '#FF6B6B',
     padding: 10,
     borderRadius: 5,
-    marginTop: 10,
+    flex: 1,
+    marginRight: 5,
     alignItems: 'center',
   },
   resetButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  saveButton: {
+    backgroundColor: '#22C55E',
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginLeft: 5,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  signInButton: {
+    backgroundColor: '#3B82F6',
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginLeft: 5,
+    alignItems: 'center',
+  },
+  signInButtonText: {
     color: 'white',
     fontWeight: 'bold',
   },

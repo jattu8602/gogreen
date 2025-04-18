@@ -25,6 +25,7 @@
     "@supabase/supabase-js": "^2.49.4",
     "@tomtom-international/web-sdk-maps": "^6.25.0",
     "@tomtom-international/web-sdk-services": "^6.25.0",
+    "@types/uuid": "^10.0.0",
     "date-fns": "^4.1.0",
     "expo": "~52.0.43",
     "expo-blur": "~14.0.3",
@@ -54,7 +55,8 @@
     "react-native-toast-message": "^2.2.1",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "~0.19.13",
-    "react-native-webview": "13.12.5"
+    "react-native-webview": "13.12.5",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

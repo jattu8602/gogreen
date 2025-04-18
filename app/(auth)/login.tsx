@@ -1,213 +1,187 @@
-import React, { useState, useEffect } from 'react'
-import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native'
+import React, { useState } from 'react'
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native'
 import { useSignIn } from '@clerk/clerk-expo'
-import { Link, router } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
+import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import Toast from 'react-native-toast-message'
-
+import { StatusBar } from 'expo-status-bar'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 
-export default function Login() {
-  const { signIn, setActive, isLoaded } = useSignIn()
+export default function LoginScreen() {
+  const { signIn, isLoaded, setActive } = useSignIn()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [clerkLoadingRetries, setClerkLoadingRetries] = useState(0)
-
-  // Monitor Clerk loading state
-  useEffect(() => {
-    if (!isLoaded && clerkLoadingRetries < 3) {
-      const timer = setTimeout(() => {
-        console.log(
-          `Login: Clerk still loading... retry attempt ${
-            clerkLoadingRetries + 1
-          }`
-        )
-        setClerkLoadingRetries((prev) => prev + 1)
-      }, 2000)
-
-      return () => clearTimeout(timer)
-    }
-  }, [isLoaded, clerkLoadingRetries])
-
-  // Clear errors when component mounts
-  useEffect(() => {
-    setError('')
-  }, [])
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSignIn = async () => {
-    if (!isLoaded) {
-      console.log('Login attempt failed: Clerk is not loaded yet')
-      setError('Authentication service is not ready. Please try again.')
-      Toast.show({
-        type: 'error',
-        text1: 'Authentication Error',
-        text2: 'Service not ready. Please try again.',
-        position: 'bottom',
-      })
-      return
-    }
-
-    if (!email.trim()) {
-      console.log('Login validation failed: Email is empty')
-      setError('Please enter your email')
-      Toast.show({
-        type: 'error',
-        text1: 'Missing Email',
-        text2: 'Please enter your email address',
-        position: 'bottom',
-      })
-      return
-    }
-
-    if (!password.trim()) {
-      console.log('Login validation failed: Password is empty')
-      setError('Please enter your password')
-      Toast.show({
-        type: 'error',
-        text1: 'Missing Password',
-        text2: 'Please enter your password',
-        position: 'bottom',
-      })
-      return
-    }
+    if (!isLoaded) return
 
     setLoading(true)
     setError('')
-    console.log('Attempting login with email:', email)
 
     try {
-      const result = await signIn.create({
+      // Create a sign-in attempt with email and password
+      const signInAttempt = await signIn.create({
         identifier: email,
         password,
       })
 
-      console.log('Sign in result status:', result.status)
-
-      if (result.status === 'complete') {
-        console.log('Login successful, setting active session')
-        await setActive({ session: result.createdSessionId })
-        Toast.show({
-          type: 'success',
-          text1: 'Login Successful',
-          text2: 'Welcome back!',
-          position: 'bottom',
-        })
+      // Check if sign-in was successful
+      if (signInAttempt.status === 'complete') {
+        // Set the active session
+        await setActive({ session: signInAttempt.createdSessionId })
         router.replace('/(tabs)')
       } else {
-        // Handle 2FA or other additional steps if needed
-        console.log('Additional authentication steps required:', result.status)
-        Toast.show({
-          type: 'info',
-          text1: 'Additional Verification',
-          text2: 'Please complete the additional verification steps',
-          position: 'bottom',
-        })
+        // Handle additional verification steps if needed
+        console.log('Additional verification needed:', signInAttempt)
+        setError('Additional verification needed')
       }
     } catch (err: any) {
-      console.error('Sign in error details:', JSON.stringify(err, null, 2))
-
-      const errorMsg =
-        err.errors?.[0]?.message ||
-        'Invalid email or password. Please try again.'
-      console.error('Login error message:', errorMsg)
-
-      setError(errorMsg)
-      Toast.show({
-        type: 'error',
-        text1: 'Login Failed',
-        text2: errorMsg,
-        position: 'bottom',
-      })
+      console.error('Error signing in:', err)
+      setError(err.errors?.[0]?.message || 'Failed to sign in')
     } finally {
       setLoading(false)
     }
   }
 
+  const handleSignUp = () => {
+    router.push('/(auth)/signup')
+  }
+
   return (
     <ThemedView style={styles.container}>
       <StatusBar style="auto" />
-
-      <View style={styles.headerContainer}>
-        <View style={styles.logoContainer}>
-          <Ionicons name="leaf" size={48} color="#4CAF50" />
-        </View>
-        <ThemedText style={styles.title}>GoGreen</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Sign in to continue your eco-journey
-        </ThemedText>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <View style={styles.inputWrapper}>
-          <Ionicons
-            name="mail-outline"
-            size={24}
-            color="#4CAF50"
-            style={styles.inputIcon}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholderTextColor="#90A4AE"
-          />
-        </View>
-        <View style={styles.inputWrapper}>
-          <Ionicons
-            name="lock-closed-outline"
-            size={24}
-            color="#4CAF50"
-            style={styles.inputIcon}
-          />
-          <TextInput
-            style={styles.passwordInput}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            placeholderTextColor="#90A4AE"
-          />
-          <TouchableOpacity
-            style={styles.eyeButton}
-            onPress={() => setShowPassword(!showPassword)}
-          >
-            <Ionicons
-              name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-              size={24}
-              color="#4CAF50"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
-
-      <TouchableOpacity
-        style={[styles.signInButton, loading && styles.signInButtonDisabled]}
-        onPress={handleSignIn}
-        disabled={loading}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoid}
       >
-        <ThemedText style={styles.buttonText}>
-          {loading ? 'Signing in...' : 'Sign In'}
-        </ThemedText>
-      </TouchableOpacity>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('@/assets/images/logo.png')}
+              style={styles.logo}
+            />
+            <ThemedText style={styles.appName}>GoGreen</ThemedText>
+            <ThemedText style={styles.tagline}>
+              Track your eco-friendly journeys
+            </ThemedText>
+          </View>
 
-      <View style={styles.footerContainer}>
-        <ThemedText style={styles.footerText}>
-          Don't have an account?{' '}
-          <Link href="/(auth)/signup">
-            <ThemedText style={styles.signUpLink}>Sign Up</ThemedText>
-          </Link>
-        </ThemedText>
-      </View>
+          {error ? (
+            <View style={styles.errorContainer}>
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            </View>
+          ) : null}
+
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color="#666"
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="#999"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color="#666"
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor="#999"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity
+                style={styles.passwordVisibilityButton}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.forgotPassword}>
+            <ThemedText style={styles.forgotPasswordText}>
+              Forgot Password?
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.signInButton}
+            onPress={handleSignIn}
+            disabled={loading || !email || !password}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" size="small" />
+            ) : (
+              <ThemedText style={styles.signInButtonText}>Sign In</ThemedText>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.orContainer}>
+            <View style={styles.divider} />
+            <ThemedText style={styles.orText}>OR</ThemedText>
+            <View style={styles.divider} />
+          </View>
+
+          <TouchableOpacity
+            style={styles.googleButton}
+            // Note: Social providers would require additional setup with Clerk
+          >
+            <Image
+              source={require('@/assets/images/google.png')}
+              style={styles.socialIcon}
+            />
+            <ThemedText style={styles.googleButtonText}>
+              Continue with Google
+            </ThemedText>
+          </TouchableOpacity>
+
+          <View style={styles.signUpContainer}>
+            <ThemedText style={styles.signUpText}>
+              Don't have an account?{' '}
+            </ThemedText>
+            <TouchableOpacity onPress={handleSignUp}>
+              <ThemedText style={styles.signUpLink}>Sign Up</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   )
 }
@@ -215,104 +189,134 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
   },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 48,
+  keyboardAvoid: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 20,
+    justifyContent: 'center',
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#E8F5E9',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 40,
   },
-  title: {
-    fontSize: 32,
+  logo: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
+    marginBottom: 10,
+  },
+  appName: {
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#2E7D32',
-    marginBottom: 8,
+    color: '#22C55E',
+    marginBottom: 5,
   },
-  subtitle: {
+  tagline: {
     fontSize: 16,
-    color: '#66BB6A',
+    color: '#666',
     textAlign: 'center',
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-    marginBottom: 16,
-    paddingHorizontal: 16,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   inputIcon: {
-    marginRight: 12,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    height: 56,
-    fontSize: 16,
-    color: '#424242',
+    height: 50,
+    color: '#333',
   },
-  passwordInput: {
-    flex: 1,
-    height: 56,
-    fontSize: 16,
-    color: '#424242',
+  passwordVisibilityButton: {
+    padding: 10,
   },
-  eyeButton: {
-    padding: 8,
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginBottom: 20,
+  },
+  forgotPasswordText: {
+    color: '#22C55E',
+    fontSize: 14,
   },
   signInButton: {
-    height: 56,
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
+    backgroundColor: '#22C55E',
+    borderRadius: 8,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    marginBottom: 20,
   },
-  signInButtonDisabled: {
-    backgroundColor: '#A5D6A7',
-  },
-  buttonText: {
+  signInButtonText: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  footerContainer: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  footerText: {
     fontSize: 16,
-    color: '#757575',
-  },
-  signUpLink: {
-    color: '#4CAF50',
     fontWeight: 'bold',
   },
+  orContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  orText: {
+    marginHorizontal: 10,
+    color: '#999',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: 'white',
+  },
+  socialIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 10,
+  },
+  googleButtonText: {
+    color: '#333',
+    fontSize: 16,
+  },
+  signUpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  signUpText: {
+    color: '#666',
+  },
+  signUpLink: {
+    color: '#22C55E',
+    fontWeight: 'bold',
+  },
+  errorContainer: {
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 20,
+  },
   errorText: {
-    color: '#D32F2F',
-    marginBottom: 16,
+    color: 'red',
     textAlign: 'center',
   },
 })
