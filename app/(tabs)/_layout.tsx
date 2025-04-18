@@ -103,14 +103,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="travel-planner"
         options={{
-          title: 'Travel Maps',
+          title: 'Travel Planner',
           tabBarIcon: ({ color }) =>
             Platform.OS === 'ios' ? (
-              <IconSymbol size={28} name="globe" color={color} />
+              <IconSymbol size={28} name="airplane" color={color} />
             ) : (
-              <MaterialIcons name="explore" size={28} color={color} />
+              <MaterialIcons name="flight" size={28} color={color} />
             ),
         }}
       />
