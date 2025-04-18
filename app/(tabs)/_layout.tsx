@@ -12,7 +12,7 @@ const COLORS = {
   leafGreen: '#22C55E', // Vibrant leaf green for active items
   darkGreen: '#166534', // Darker green for secondary elements
   bark: '#854D0E', // Brown bark color for accents
-  soil: '#57534E', // Dark soil color for inactive items
+  soil: '#FBFBFB', // Dark soil color for inactive items
 }
 
 // Custom background component for Android and other platforms

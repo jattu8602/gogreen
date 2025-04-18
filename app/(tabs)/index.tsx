@@ -143,6 +143,8 @@ export default function TabOneScreen() {
     routeInfo: string;
     earnedPoints: number | null;
   } | null>(null)
+  const [routeError, setRouteError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   // Load saved route data from AsyncStorage on initial load
   useEffect(() => {
@@ -959,6 +961,7 @@ export default function TabOneScreen() {
     if (!startLocation || !endLocation) return
 
     setLoading(true)
+    setRouteError(false) // Reset error state
 
     try {
       const routeType = getTomTomRouteType(selectedOptions.type)
@@ -1028,15 +1031,22 @@ export default function TabOneScreen() {
           `displayRoute(${JSON.stringify(geoJson)}); true;`
         )
       } else {
-        throw new Error('Failed to calculate route')
+        throw new Error('No route found between these locations')
       }
     } catch (error) {
       console.error('Error finding route:', error)
-      Alert.alert(
-        'Route Error',
-        'Failed to generate route. Please try again.',
-        [{ text: 'OK' }]
-      )
+      setRouteError(true)
+
+      // Set a user-friendly error message
+      if (error instanceof Error) {
+        if (error.message.includes('No route found')) {
+          setErrorMessage('No route found between these locations')
+        } else {
+          setErrorMessage('Unable to calculate a route right now')
+        }
+      } else {
+        setErrorMessage('Something went wrong with route calculation')
+      }
     } finally {
       setLoading(false)
       setShowOptions(false)
@@ -1408,6 +1418,29 @@ export default function TabOneScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Error UI */}
+      {routeError && (
+        <View style={styles.errorCard}>
+          <View style={styles.errorIconContainer}>
+            <Text style={styles.errorEmoji}>🥺</Text>
+          </View>
+          <Text style={styles.errorTitle}>Oops! Route Not Found</Text>
+          <Text style={styles.errorDescription}>{errorMessage}</Text>
+          <Text style={styles.errorSubtext}>
+            The locations might be too far apart or not connected by roads
+          </Text>
+          <TouchableOpacity
+            style={styles.tryAgainButton}
+            onPress={() => {
+              setRouteError(false)
+              resetMapMarkers()
+            }}
+          >
+            <Text style={styles.tryAgainButtonText}>Try Another Route</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   )
 }
@@ -1832,5 +1865,65 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  errorCard: {
+    position: 'absolute',
+    bottom: 150,
+    left: 20,
+    right: 20,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#FFB6C1', // Light pink border
+  },
+  errorIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFF0F5', // Lavender blush
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  errorEmoji: {
+    fontSize: 40,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorDescription: {
+    fontSize: 16,
+    color: '#444',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: '#777',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  tryAgainButton: {
+    backgroundColor: '#FFB6C1', // Light pink
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    alignItems: 'center',
+  },
+  tryAgainButtonText: {
+    color: '#444',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 })
