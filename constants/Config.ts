@@ -1,0 +1,1 @@
+export const TOMTOM_API_KEY = 'JfGEY97rCJsxiAdjfv8xAEcvwxaJQGg7' // TomTom API key from .env

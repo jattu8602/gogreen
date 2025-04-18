@@ -110,3 +110,9 @@ export async function handleTravelQuestion(question: string): Promise<string> {
     return 'I\'m sorry, I couldn\'t process your question at the moment. Please try again later.'
   }
 }
+
+// Add a default export
+export default {
+  generateTravelPlan,
+  handleTravelQuestion
+}

@@ -1,24 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import {
-  StyleSheet,
   View,
+  Text,
   TextInput,
   TouchableOpacity,
-  Text,
-  Modal,
-  ScrollView,
+  StyleSheet,
   Alert,
+  ScrollView,
+  Modal,
   ActivityIndicator,
-  Platform,
 } from 'react-native'
 import { WebView } from 'react-native-webview'
-import * as Location from 'expo-location'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { useUser } from '@clerk/clerk-expo'
-import { v5 as uuidv5 } from 'uuid'
 import { getUUIDFromClerkID } from '@/lib/userService'
 import { calculateGreenPoints, saveRoute } from '@/lib/routeService'
 import { TOMTOM_API_KEY } from '../../constants/Config'
+import * as Location from 'expo-location'
 
 interface Location {
   latitude: number
@@ -34,18 +31,17 @@ interface RouteDetails {
   distance: string
   duration: string
   co2Emission: string
-  batteryUsage?: string
+  batteryUsage: string
 }
 
-// TomTom routing type mapping
-const getTomTomRouteType = (type: string): string => {
+const getTomTomRouteType = (type: string) => {
   switch (type) {
     case 'fastest':
       return 'fastest'
     case 'cost-effective':
       return 'eco'
     case 'low-traffic':
-      return 'thrilling'
+      return 'balanced'
     case 'long-drive':
       return 'shortest'
     default:
@@ -53,8 +49,7 @@ const getTomTomRouteType = (type: string): string => {
   }
 }
 
-// TomTom vehicle type mapping
-const getTomTomVehicleType = (vehicle: string): string => {
+const getTomTomVehicleType = (vehicle: string) => {
   switch (vehicle) {
     case 'car':
       return 'car'
@@ -64,7 +59,7 @@ const getTomTomVehicleType = (vehicle: string): string => {
     case 'walk':
       return 'pedestrian'
     case 'train':
-      return 'bus' // TomTom doesn't have train specifically
+      return 'transit'
     case 'auto':
     case 'taxi':
       return 'taxi'
@@ -73,7 +68,7 @@ const getTomTomVehicleType = (vehicle: string): string => {
   }
 }
 
-export default function TabOneScreen() {
+export default function MapScreen() {
   const webViewRef = useRef<WebView>(null)
   const [userLocation, setUserLocation] = useState<Location | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -117,9 +112,6 @@ export default function TabOneScreen() {
   }, [])
 
   const initMap = (latitude: number, longitude: number) => {
-    console.log('Initializing map with coordinates:', latitude, longitude);
-    console.log('Using TomTom API key:', TOMTOM_API_KEY);
-
     const html = `
     <!DOCTYPE html>
     <html>
@@ -127,7 +119,7 @@ export default function TabOneScreen() {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <link rel="stylesheet" type="text/css" href="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css">
       <style>
-        body, html, #map { margin: 0; padding: 0; height: 100%; width: 100%; }
+        body, html, #map { margin: 0; padding: 0; height: 100%; }
         .marker { width: 30px; height: 30px; }
         .marker-start { background-color: green; border-radius: 50%; }
         .marker-end { background-color: red; border-radius: 50%; }
@@ -145,52 +137,34 @@ export default function TabOneScreen() {
         var routeLayer;
 
         function initializeMap() {
-          console.log('Initializing TomTom map...');
-          try {
-            map = tt.map({
-              key: '${TOMTOM_API_KEY}',
-              container: 'map',
-              center: [${longitude}, ${latitude}],
-              zoom: 13
-            });
+          map = tt.map({
+            key: '${TOMTOM_API_KEY}',
+            container: 'map',
+            center: [${longitude}, ${latitude}],
+            zoom: 13
+          });
 
-            map.on('load', function() {
-              console.log('Map loaded successfully');
-              window.ReactNativeWebView.postMessage(JSON.stringify({type: 'mapLoaded'}));
-            });
+          map.on('load', function() {
+            window.ReactNativeWebView.postMessage(JSON.stringify({type: 'mapLoaded'}));
+          });
 
-            map.on('error', function(e) {
-              console.error('Map error:', e);
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'mapError',
-                error: e.error
-              }));
-            });
-
-            map.on('click', function(e) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'mapClick',
-                lat: e.lngLat.lat,
-                lng: e.lngLat.lng
-              }));
-
-              var el = document.createElement('div');
-              el.className = 'touch-feedback';
-              el.style.left = (e.point.x - 20) + 'px';
-              el.style.top = (e.point.y - 20) + 'px';
-              document.body.appendChild(el);
-
-              setTimeout(function() {
-                document.body.removeChild(el);
-              }, 300);
-            });
-          } catch (error) {
-            console.error('Error initializing map:', error);
+          map.on('click', function(e) {
             window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'mapError',
-              error: error.message
+              type: 'mapClick',
+              lat: e.lngLat.lat,
+              lng: e.lngLat.lng
             }));
-          }
+
+            var el = document.createElement('div');
+            el.className = 'touch-feedback';
+            el.style.left = (e.point.x - 20) + 'px';
+            el.style.top = (e.point.y - 20) + 'px';
+            document.body.appendChild(el);
+
+            setTimeout(function() {
+              document.body.removeChild(el);
+            }, 300);
+          });
         }
 
         function addStartMarker(lat, lng) {
@@ -342,17 +316,9 @@ export default function TabOneScreen() {
 
         handleMapPress(coordinate)
       } else if (data.type === 'mapLoaded') {
-        console.log('Map loaded message received from WebView');
         if (userLocation) {
           recenterMap()
         }
-      } else if (data.type === 'mapError') {
-        console.error('Map error received from WebView:', data.error);
-        Alert.alert(
-          'Map Error',
-          'There was an error loading the map. Please try again later.',
-          [{ text: 'OK' }]
-        );
       }
     } catch (error) {
       console.error('Error parsing WebView message:', error)
@@ -629,8 +595,7 @@ export default function TabOneScreen() {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search for a location..."
-          placeholderTextColor="#999"
+          placeholder="Search location..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={searchLocation}
@@ -677,17 +642,14 @@ export default function TabOneScreen() {
         geolocationEnabled={true}
         allowFileAccess={true}
         originWhitelist={['*']}
-        domStorageEnabled={true}
-        startInLoadingState={true}
-        scalesPageToFit={true}
-        onError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.warn('WebView error: ', nativeEvent);
-        }}
       />
 
       <TouchableOpacity style={styles.recenterButton} onPress={recenterMap}>
         <Text style={styles.recenterButtonText}>📍</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.refreshButton} onPress={refreshMap}>
+        <Text style={styles.refreshButtonText}>🔄</Text>
       </TouchableOpacity>
 
       {routeCoordinates.length > 0 && (
@@ -841,180 +803,140 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  map: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#e0e0e0',
-  },
-  webView: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
   },
   searchContainer: {
     position: 'absolute',
-    top: 40,
+    top: 10,
     left: 10,
     right: 10,
     zIndex: 1,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
     flexDirection: 'row',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
   },
   searchInput: {
     flex: 1,
-    height: 45,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    paddingHorizontal: 15,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 5,
     marginRight: 10,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
   },
   searchButton: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#2196F3',
+    padding: 10,
+    borderRadius: 5,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    height: 45,
   },
   searchButtonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 16,
   },
   searchResultsContainer: {
     position: 'absolute',
-    top: 100,
+    top: 60,
     left: 10,
     right: 10,
     backgroundColor: 'white',
-    borderRadius: 12,
-    maxHeight: 300,
-    zIndex: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
+    borderRadius: 5,
+    maxHeight: 200,
+    zIndex: 1,
   },
   searchResultsList: {
-    maxHeight: 250,
+    maxHeight: 150,
   },
   searchResultItem: {
-    padding: 15,
+    padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#eee',
   },
   searchResultName: {
     fontWeight: 'bold',
-    fontSize: 16,
-    color: '#333',
   },
   searchResultAddress: {
     color: '#666',
-    fontSize: 14,
-    marginTop: 4,
+    fontSize: 12,
   },
   closeSearchButton: {
-    padding: 12,
+    padding: 10,
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
+    backgroundColor: '#f0f0f0',
   },
   closeSearchButtonText: {
-    color: '#333',
-    fontWeight: '500',
+    color: '#2196F3',
+    fontWeight: 'bold',
+  },
+  map: {
+    flex: 1,
   },
   recenterButton: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 20,
     right: 20,
     backgroundColor: 'white',
-    borderRadius: 30,
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 10,
+    borderRadius: 25,
+    elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
   },
   recenterButtonText: {
-    fontSize: 24,
+    fontSize: 20,
+  },
+  refreshButton: {
+    position: 'absolute',
+    bottom: 80,
+    right: 20,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 25,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  refreshButtonText: {
+    fontSize: 20,
   },
   aiButton: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 140,
     right: 20,
-    backgroundColor: '#4285F4',
-    borderRadius: 30,
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#2196F3',
+    padding: 10,
+    borderRadius: 25,
+    elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
   },
   aiButtonText: {
-    fontSize: 18,
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 10,
-    backgroundColor: '#2196F3',
-    padding: 10,
-    borderRadius: 5,
-    zIndex: 10,
-  },
-  backButtonText: {
     color: 'white',
     fontWeight: 'bold',
   },
   routeInfoCard: {
     position: 'absolute',
-    bottom: 150,
-    left: 20,
-    right: 20,
+    bottom: 20,
+    left: 10,
+    right: 10,
     backgroundColor: 'white',
-    borderRadius: 12,
     padding: 15,
+    borderRadius: 10,
+    elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
   },
   routeInfoTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
+    marginBottom: 10,
   },
   routeInfoDetail: {
     fontSize: 14,
-    marginBottom: 4,
-    color: '#555',
+    marginBottom: 5,
   },
   routeButtonsContainer: {
     flexDirection: 'row',
@@ -1022,51 +944,50 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   resetButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#f44336',
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 5,
     flex: 1,
     marginRight: 5,
-    alignItems: 'center',
   },
   resetButtonText: {
     color: 'white',
+    textAlign: 'center',
     fontWeight: 'bold',
   },
   saveButton: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#4CAF50',
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 5,
     flex: 1,
     marginLeft: 5,
-    alignItems: 'center',
   },
   saveButtonText: {
     color: 'white',
+    textAlign: 'center',
     fontWeight: 'bold',
   },
   signInButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#2196F3',
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 5,
     flex: 1,
-    marginLeft: 5,
-    alignItems: 'center',
   },
   signInButtonText: {
     color: 'white',
+    textAlign: 'center',
     fontWeight: 'bold',
   },
   modalContainer: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
     backgroundColor: 'white',
-    borderRadius: 10,
     padding: 20,
+    borderRadius: 10,
     width: '80%',
     maxHeight: '80%',
   },
@@ -1084,9 +1005,9 @@ const styles = StyleSheet.create({
   },
   optionButton: {
     padding: 10,
-    marginVertical: 5,
-    backgroundColor: '#f0f0f0',
     borderRadius: 5,
+    backgroundColor: '#f0f0f0',
+    marginBottom: 5,
   },
   selectedOption: {
     backgroundColor: '#2196F3',
@@ -1095,7 +1016,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   findRouteButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#4CAF50',
     padding: 15,
     borderRadius: 5,
     marginTop: 20,
@@ -1106,14 +1027,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   cancelButton: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f44336',
     padding: 15,
     borderRadius: 5,
     marginTop: 10,
-    marginBottom: 10,
   },
   cancelButtonText: {
+    color: 'white',
     textAlign: 'center',
+    fontWeight: 'bold',
   },
   descriptionScroll: {
     maxHeight: 300,
@@ -1124,9 +1046,9 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     backgroundColor: '#2196F3',
-    padding: 12,
+    padding: 15,
     borderRadius: 5,
-    marginTop: 15,
+    marginTop: 10,
   },
   closeButtonText: {
     color: 'white',

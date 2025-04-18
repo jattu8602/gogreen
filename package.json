@@ -20,6 +20,7 @@
     "@firebase/auth": "^1.10.0",
     "@firebase/firestore": "^4.7.10",
     "@google/generative-ai": "^0.24.0",
+    "@react-native-async-storage/async-storage": "^1.24.0",
     "@react-native-community/datetimepicker": "8.2.0",
     "@react-native-picker/picker": "2.9.0",
     "@react-navigation/bottom-tabs": "^7.2.0",

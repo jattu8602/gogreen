@@ -14,9 +14,10 @@ import {
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { Ionicons } from '@expo/vector-icons'
-import { useUser, useAuth } from '@clerk/clerk-expo'
+import { useUser, useAuth, useClerk } from '@clerk/clerk-expo'
 import * as ImagePicker from 'expo-image-picker'
 import * as FileSystem from 'expo-file-system'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { router } from 'expo-router'
 import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
@@ -27,6 +28,8 @@ import {
   getUUIDFromClerkID,
   fetchLeaderboard as fetchLeaderboardData,
   updateUserProfileImage,
+  getUserById,
+  createOrUpdateUser,
 } from '@/lib/userService'
 import { uploadImageToCloudinary } from '@/lib/cloudinary'
 
@@ -42,6 +45,9 @@ const COLORS = {
   lightestGreen: '#DCFCE7', // Very light green for backgrounds
 }
 
+// AsyncStorage keys
+const PROFILE_IMAGE_KEY = 'user_profile_image'
+
 export default function LeaderboardScreen() {
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,60 +55,81 @@ export default function LeaderboardScreen() {
   const [userRank, setUserRank] = useState<UserData | null>(null)
   const { user, isSignedIn } = useUser()
   const { signOut } = useAuth()
+  const clerk = useClerk()
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
 
-  // Handle sign out
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-      router.replace('/(auth)/login')
-    } catch (error) {
-      console.error('Error signing out:', error)
-      Alert.alert('Error', 'Failed to sign out. Please try again.')
-    }
-  }
+  // Initialize user data when signed in
+  useEffect(() => {
+    const initializeUserData = async () => {
+      if (isSignedIn && user) {
+        try {
+          // Create or update user in Firebase
+          const userData: UserData = {
+            id: getUUIDFromClerkID(user.id),
+            clerk_id: user.id,
+            full_name: user.fullName || 'Anonymous User',
+            username: user.username || `user_${user.id.substring(0, 6)}`,
+            green_score: 0,
+            profile_url: user.imageUrl,
+          }
 
-  // Fetch leaderboard data and current user's rank
+          await createOrUpdateUser(userData)
+          console.log('User data initialized:', userData)
+        } catch (error) {
+          console.error('Error initializing user data:', error)
+        }
+      }
+    }
+
+    initializeUserData()
+  }, [isSignedIn, user])
+
+  // Load profile image from AsyncStorage
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      if (isSignedIn && user) {
+        try {
+          const storedImageUrl = await AsyncStorage.getItem(PROFILE_IMAGE_KEY)
+          if (storedImageUrl) {
+            setProfileImage(storedImageUrl)
+          } else if (user.imageUrl) {
+            setProfileImage(user.imageUrl)
+            await AsyncStorage.setItem(PROFILE_IMAGE_KEY, user.imageUrl)
+          }
+        } catch (error) {
+          console.error('Error loading profile image:', error)
+        }
+      }
+    }
+
+    loadProfileImage()
+  }, [isSignedIn, user])
+
+  // Fetch leaderboard data
   const fetchLeaderboard = async () => {
     try {
       setRefreshing(true)
       console.log('Fetching leaderboard data...')
 
-      try {
-        // Get leaderboard data from Firebase
-        const rankedUsers = await fetchLeaderboardData()
+      const rankedUsers = await fetchLeaderboardData()
+      if (!rankedUsers || rankedUsers.length === 0) {
+        console.log('No leaderboard data found')
+        setUsers([])
+        return
+      }
 
-        if (!rankedUsers || rankedUsers.length === 0) {
-          console.log('No leaderboard data found')
-          setUsers([])
-          return
+      console.log(`Found ${rankedUsers.length} users`)
+      setUsers(rankedUsers)
+
+      // Get current user's rank if signed in
+      if (isSignedIn && user) {
+        const userUUID = getUUIDFromClerkID(user.id)
+        const currentUser = rankedUsers.find(u => u.id === userUUID)
+        if (currentUser) {
+          setUserRank(currentUser)
         }
-
-        console.log(`Found ${rankedUsers.length} users`)
-        setUsers(rankedUsers)
-
-        // Get current user's rank if signed in
-        if (isSignedIn && user) {
-          // First try to find by UUID
-          const userUUID = getUUIDFromClerkID(user.id)
-          let currentUser = rankedUsers.find((u) => u.id === userUUID)
-
-          // If not found, try to find by clerk_id (for backward compatibility)
-          if (!currentUser) {
-            currentUser = rankedUsers.find((u) => u.clerk_id === user.id)
-          }
-
-          if (currentUser) {
-            setUserRank(currentUser)
-            setProfileImage(currentUser.profile_url || null)
-          } else {
-            console.log('Current user not found in leaderboard data')
-          }
-        }
-      } catch (err) {
-        throw err
       }
     } catch (error) {
       console.error('Error fetching leaderboard:', error)
@@ -119,142 +146,126 @@ export default function LeaderboardScreen() {
   // Handle profile image upload
   const handleProfileUpload = async () => {
     if (!isSignedIn) {
-      Alert.alert(
-        'Sign In Required',
-        'Please sign in to upload a profile photo.'
-      )
+      Alert.alert('Sign In Required', 'Please sign in to upload a profile photo.')
       return
     }
 
-    try {
-      // Convert Clerk ID to UUID
-      const userUUID = getUUIDFromClerkID(user!.id)
-
-      // Ask user to choose source (camera or gallery)
-      Alert.alert(
-        'Upload Profile Photo',
-        'Choose the source for your profile picture',
-        [
-          {
-            text: 'Camera',
-            onPress: () => launchCamera(userUUID),
-          },
-          {
-            text: 'Gallery',
-            onPress: () => launchGallery(userUUID),
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-        ]
-      )
-    } catch (error) {
-      console.error('Error with profile image selection:', error)
-    }
+    Alert.alert(
+      'Upload Profile Photo',
+      'Choose a photo source',
+      [
+        {
+          text: 'Camera',
+          onPress: () => launchCamera(),
+        },
+        {
+          text: 'Gallery',
+          onPress: () => launchGallery(),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    )
   }
 
-  // Launch device camera
-  const launchCamera = async (userUUID: string) => {
+  const launchCamera = async () => {
     try {
-      // Request camera permissions
       const { status } = await ImagePicker.requestCameraPermissionsAsync()
-
       if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          'Please allow camera access to take a profile photo.'
-        )
+        Alert.alert('Permission required', 'Camera access is required to take photos')
         return
       }
 
-      // Launch camera
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.7,
+        quality: 0.8,
       })
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        await uploadImage(result.assets[0], userUUID)
+      if (!result.canceled && result.assets[0]) {
+        await uploadImage(result.assets[0].uri)
       }
     } catch (error) {
-      console.error('Camera error:', error)
-      Alert.alert('Camera Error', 'There was a problem using your camera.')
+      console.error('Error launching camera:', error)
+      Alert.alert('Error', 'Failed to launch camera')
     }
   }
 
-  // Launch gallery picker
-  const launchGallery = async (userUUID: string) => {
+  const launchGallery = async () => {
     try {
-      // Request permission
-      const galleryPermission =
-        await ImagePicker.requestMediaLibraryPermissionsAsync()
-
-      if (galleryPermission.status !== 'granted') {
-        Alert.alert(
-          'Permission Denied',
-          'Please allow access to your gallery to upload photos.'
-        )
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Gallery access is required to select photos')
         return
       }
 
-      // Launch gallery picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.7,
+        quality: 0.8,
       })
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        await uploadImage(result.assets[0], userUUID)
+      if (!result.canceled && result.assets[0]) {
+        await uploadImage(result.assets[0].uri)
       }
     } catch (error) {
-      console.error('Gallery error:', error)
-      Alert.alert(
-        'Gallery Error',
-        'There was a problem accessing your gallery.'
-      )
+      console.error('Error launching gallery:', error)
+      Alert.alert('Error', 'Failed to launch gallery')
     }
   }
 
-  // Upload the selected image
-  const uploadImage = async (selectedImage: any, userUUID: string) => {
+  const uploadImage = async (imageUri: string) => {
+    if (!isSignedIn || !user) {
+      Alert.alert('Error', 'You must be signed in to upload a profile photo')
+      return
+    }
+
     try {
       setUploadingImage(true)
 
-      // Upload to Cloudinary instead of Supabase
+      // Upload to Cloudinary
       console.log('Uploading to Cloudinary...')
-      const { secure_url } = await uploadImageToCloudinary(
-        selectedImage.uri,
-        userUUID
-      )
+      const userUUID = getUUIDFromClerkID(user.id)
+      const { secure_url } = await uploadImageToCloudinary(imageUri, userUUID)
 
       console.log('File uploaded successfully:', secure_url)
 
-      // Update user profile image in Firestore
+      // Update local state
+      setProfileImage(secure_url)
+
+      // Save to AsyncStorage
+      await AsyncStorage.setItem(PROFILE_IMAGE_KEY, secure_url)
+
+      // Update Firebase
       await updateUserProfileImage(userUUID, secure_url)
 
-      setProfileImage(secure_url)
-      fetchLeaderboard() // Refresh data
-
-      Alert.alert('Success', 'Your profile photo has been updated!')
-    } catch (error: any) {
-      console.error('Error uploading profile image:', error)
-
-      // More detailed error message
-      let errorMessage = 'There was an error uploading your profile image.'
-      if (error.message) {
-        errorMessage = error.message
-      } else if (error.error_description) {
-        errorMessage = error.error_description
+      // Update user rank if exists
+      if (userRank) {
+        setUserRank({ ...userRank, profile_url: secure_url })
       }
 
-      Alert.alert('Upload Failed', errorMessage)
+      Alert.alert('Success', 'Profile photo updated successfully')
+    } catch (error: any) {
+      console.error('Error uploading profile image:', error)
+      Alert.alert('Upload Failed', 'Failed to upload profile photo. Please try again.')
     } finally {
       setUploadingImage(false)
+    }
+  }
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      router.replace('/(auth)/login')
+    } catch (error) {
+      console.error('Error signing out:', error)
+      Alert.alert('Error', 'Failed to sign out. Please try again.')
     }
   }
 
@@ -263,13 +274,14 @@ export default function LeaderboardScreen() {
     fetchLeaderboard()
   }, [isSignedIn])
 
+  // Add a refresh function for the pull-to-refresh feature
+  const onRefresh = React.useCallback(() => {
+    fetchLeaderboard()
+  }, [])
+
   // Render a user item in the leaderboard
   const renderUserItem = ({ item }: { item: UserData }) => {
-    // Check if this is the current user using both ID methods
-    const isCurrentUser =
-      isSignedIn &&
-      user &&
-      (item.id === getUUIDFromClerkID(user.id) || item.clerk_id === user.id)
+    const isCurrentUser = isSignedIn && user && item.id === getUUIDFromClerkID(user.id)
 
     return (
       <View style={[styles.userItem, isCurrentUser && styles.currentUserItem]}>
@@ -399,7 +411,7 @@ export default function LeaderboardScreen() {
             keyExtractor={(item) => item.id}
             style={styles.list}
             refreshing={refreshing}
-            onRefresh={fetchLeaderboard}
+            onRefresh={onRefresh}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Ionicons
@@ -723,3 +735,4 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
 })
+

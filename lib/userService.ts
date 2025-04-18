@@ -59,7 +59,10 @@ export const fetchLeaderboard = async (): Promise<UserData[]> => {
     return users
   } catch (error) {
     console.error('Error fetching leaderboard:', error)
-    throw error
+
+    // Return an empty array instead of throwing an error
+    // This allows the app to continue functioning even if there are permission issues
+    return []
   }
 }
 
@@ -99,7 +102,10 @@ export const getUserById = async (
     return userDoc.data() as UserData
   } catch (error) {
     console.error('Error getting user:', error)
-    throw error
+
+    // Return null instead of throwing an error
+    // This allows the app to continue functioning even if there are permission issues
+    return null
   }
 }
 
@@ -146,7 +152,24 @@ export const updateUserProfileImage = async (
   imageUrl: string
 ): Promise<void> => {
   try {
+    // First try to get the user document to check if it exists
     const userRef = doc(db, 'users', userId)
+    const userSnap = await getDoc(userRef)
+
+    if (!userSnap.exists()) {
+      console.log('User document does not exist, creating it')
+      // Create a new user document if it doesn't exist
+      await setDoc(userRef, {
+        id: userId,
+        profile_url: imageUrl,
+        green_score: 0,
+        full_name: '',
+        username: '',
+      })
+      return
+    }
+
+    // Update the existing user document
     await updateDoc(userRef, {
       profile_url: imageUrl,
     })
