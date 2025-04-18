@@ -88,9 +88,8 @@ export default function TabLayout() {
         }}
       />
 
-      
       <Tabs.Screen
-        name="history"
+        name="leaderboard"
         options={{
           title: 'Leaderboard',
           tabBarIcon: ({ color }) =>

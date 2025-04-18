@@ -17,6 +17,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { createClient } from '@supabase/supabase-js'
 import { useUser } from '@clerk/clerk-expo'
 import { v5 as uuidv5 } from 'uuid'
+import { getUUIDFromClerkID } from '@/lib/userService'
+import { calculateGreenPoints, saveRoute } from '@/lib/routeService'
 
 interface Location {
   latitude: number
@@ -79,14 +81,6 @@ const supabase = createClient(
   process.env.EXPO_PUBLIC_SUPABASE_URL!,
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
 )
-
-// Function to convert Clerk user ID to a consistent UUID
-const getUUIDFromClerkID = (clerkId: string): string => {
-  // Use UUID v5 with a fixed namespace to generate consistent UUIDs
-  // This ensures the same Clerk ID always maps to the same UUID
-  const NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8' // UUID namespace
-  return uuidv5(clerkId, NAMESPACE)
-}
 
 export default function MapScreen() {
   const webViewRef = useRef<WebView>(null)
@@ -570,9 +564,10 @@ export default function MapScreen() {
     setWebViewKey((prevKey) => prevKey + 1)
   }
 
-  // New function to save route data to Supabase
+  // New function to save route data to Firebase
   const saveRouteData = async () => {
-    if (!isSignedIn || !user || !routeDetails) return
+    if (!isSignedIn || !user || !routeDetails || !startLocation || !endLocation)
+      return
 
     try {
       // Calculate green score from CO2 savings
@@ -585,84 +580,30 @@ export default function MapScreen() {
       // Generate a UUID from the Clerk user ID
       const userUUID = getUUIDFromClerkID(user.id)
 
-      // Calculate green points - more points for eco-friendly options
-      let greenPoints = 0
+      // Calculate green points using the utility function
+      const greenPoints = calculateGreenPoints(
+        distance,
+        selectedOptions.vehicle,
+        selectedOptions.type
+      )
 
-      if (selectedOptions.vehicle === 'car') {
-        // For cars, give points based on route type efficiency
-        if (selectedOptions.type === 'cost-effective') {
-          greenPoints = Math.round(
-            (baselineEmission - actualEmission) * distance * 10
-          )
-        } else {
-          greenPoints = Math.round(
-            (baselineEmission - actualEmission) * distance * 5
-          )
-        }
-      } else if (['bike', 'cycle', 'walk'].includes(selectedOptions.vehicle)) {
-        // Bonus points for zero-emission transportation
-        greenPoints = Math.round(baselineEmission * distance * 20)
-      } else if (selectedOptions.vehicle === 'train') {
-        // Points for public transport
-        greenPoints = Math.round(baselineEmission * distance * 15)
-      } else {
-        // Default points
-        greenPoints = Math.round(
-          (baselineEmission - actualEmission) * distance * 5
-        )
+      // Prepare the route data
+      const routeData = {
+        user_id: userUUID,
+        start_lat: startLocation.latitude,
+        start_lng: startLocation.longitude,
+        end_lat: endLocation.latitude,
+        end_lng: endLocation.longitude,
+        distance: distance,
+        duration: routeDetails.duration,
+        co2_emission: actualEmission,
+        vehicle_type: selectedOptions.vehicle,
+        route_type: selectedOptions.type,
+        green_points: greenPoints,
       }
 
-      // Ensure minimum points for using the app
-      greenPoints = Math.max(greenPoints, 5)
-
-      // First, save route history
-      const { error: routeError } = await supabase
-        .from('route_history')
-        .insert({
-          user_id: userUUID, // Use UUID instead of Clerk ID
-          start_lat: startLocation?.latitude,
-          start_lng: startLocation?.longitude,
-          end_lat: endLocation?.latitude,
-          end_lng: endLocation?.longitude,
-          distance: distance,
-          duration: routeDetails.duration,
-          co2_emission: actualEmission,
-          vehicle_type: selectedOptions.vehicle,
-          route_type: selectedOptions.type,
-          green_points: greenPoints,
-        })
-
-      if (routeError) throw routeError
-
-      // Then update user's green score
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('green_score, id')
-        .eq('id', userUUID) // Use UUID instead of Clerk ID
-        .single()
-
-      if (userError) {
-        // User doesn't exist yet, create profile
-        const { error: createError } = await supabase.from('users').insert({
-          id: userUUID, // Use UUID instead of Clerk ID
-          full_name: user.fullName || '',
-          username: user.username || '',
-          green_score: greenPoints,
-          clerk_id: user.id, // Store the original Clerk ID as a reference
-        })
-
-        if (createError) throw createError
-      } else {
-        // Update existing user
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({
-            green_score: (userData.green_score || 0) + greenPoints,
-          })
-          .eq('id', userUUID) // Use UUID instead of Clerk ID
-
-        if (updateError) throw updateError
-      }
+      // Save to Firebase
+      await saveRoute(routeData)
 
       setRouteSaved(true)
       Alert.alert(
