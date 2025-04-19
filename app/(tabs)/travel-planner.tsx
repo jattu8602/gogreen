@@ -208,6 +208,7 @@ export default function TravelPlannerScreen() {
                 placeholderTextColor={COLORS.textLight}
           />
         </View>
+      </View>
 
           {/* Travellers */}
           <View style={styles.inputGroup}>
