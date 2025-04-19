@@ -106,7 +106,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="travel-planner"
         options={{
-          title: 'Travel Planner',
+          title: 'Planner',
           tabBarIcon: ({ color }) =>
             Platform.OS === 'ios' ? (
               <IconSymbol size={28} name="airplane" color={color} />

@@ -1,23 +1,28 @@
 {
   "expo": {
-    "name": "DaisyDo",
-    "slug": "DaisyDo",
+    "name": "GoGreen",
+    "slug": "gogreen",
     "version": "1.0.0",
+    "sdkVersion": "49.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "gogreen",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.daisydo.app"
+      "bundleIdentifier": "com.gogreen.app"
     },
     "android": {
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
+      "buildToolsVersion": "34.0.0",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.gogreen.app"
+      "package": "com.gogreen.app",
+      "permissions": []
     },
     "web": {
       "bundler": "metro",
@@ -44,7 +49,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "1e03d70f-0be8-4886-9636-b095950ee832"
+        "projectId": "0dc8bee1-3bfc-480d-a0a2-6a5b89a5adbb"
       }
     }
   }
