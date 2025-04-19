@@ -45,7 +45,6 @@ import { TOMTOM_API_KEY } from '../../constants/Config'
 import { useNavigation, useRouter } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
-import { BlurView } from 'expo-blur'
 
 // Define tree-themed colors to match the rest of the app
 const COLORS = {
@@ -90,13 +89,9 @@ export default function TravelPlannerScreen() {
   const [destination, setDestination] = useState('')
   const [duration, setDuration] = useState('')
   const [budget, setBudget] = useState('')
-  const [travellers, setTravellers] = useState('1')
-  const [showTravellersDropdown, setShowTravellersDropdown] = useState(false)
+  const [travellers, setTravellers] = useState('')
   const [loading, setLoading] = useState(false)
   const [travelPlan, setTravelPlan] = useState<TravelPlan | null>(null)
-  const insets = useSafeAreaInsets()
-  const [showSidebar, setShowSidebar] = useState(false)
-  const { user } = useUser()
 
   // Function to handle trip planning
   const handlePlanTrip = async () => {
@@ -125,70 +120,40 @@ export default function TravelPlannerScreen() {
     }
   }
 
-  // Function to handle sidebar navigation
-  const handleNavigation = (section: string) => {
-    // Close sidebar
-    setShowSidebar(false)
-
-    // Handle navigation based on section
-    switch (section) {
-      case 'profile':
-        // Navigate to profile or show profile modal
-        break
-      case 'merchandise':
-        // Navigate to merchandise section
-        break
-      case 'about':
-        // Show about modal
-        break
-      case 'contact':
-        // Show contact modal
-        break
-      case 'support':
-        // Show support modal
-        break
-    }
-  }
-
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
+      <LinearGradient
+        colors={['#E0F2F7', '#B0E2FF']}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
 
-      {/* Header */}
       <View style={styles.header}>
-        <LinearGradient
-          colors={[COLORS.primary, COLORS.secondary]}
-          style={StyleSheet.absoluteFill}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
+        <Image
+          source={require('../../assets/images/trip-planner.png')}
+          style={styles.headerBackground}
+          resizeMode="cover"
         />
-        <LinearGradient
-          colors={['rgba(255,255,255,0.2)', 'transparent']}
-          style={[StyleSheet.absoluteFill, styles.headerOverlay]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-        />
-        <View style={[styles.headerContent, { paddingTop: insets.top + 16 }]}>
-          <Text style={styles.headerTitle}>Travel Planner</Text>
-          <TouchableOpacity
-            style={styles.avatarButton}
-            onPress={() => setShowSidebar(true)}
-          >
-            <Text style={styles.avatarText}>
-              {user?.firstName?.[0] || user?.username?.[0] || 'A'}
-            </Text>
-          </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <TouchableOpacity style={styles.avatarButton}>
+              <Text style={styles.avatarText}>A</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.titleContainer}>
+            <Text style={styles.headerTitle}>Travel Planner</Text>
+          </View>
         </View>
       </View>
 
-      {/* Content */}
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Input Card */}
-        <View style={styles.card}>
+        <View style={[styles.card, styles.planCard]}>
           {/* Where to? */}
           <View style={styles.inputGroup}>
             <View style={styles.labelRow}>
@@ -237,28 +202,25 @@ export default function TravelPlannerScreen() {
             </View>
           </View>
 
-          {/* Travellers */}
+          {/* Number of Travellers */}
           <View style={styles.inputGroup}>
             <View style={styles.labelRow}>
               <Ionicons name="people-outline" size={20} color={COLORS.textLight} />
-              <Text style={styles.label}>Travellers</Text>
+              <Text style={styles.label}>Number of Travellers</Text>
             </View>
-            <TouchableOpacity
+            <TextInput
               style={styles.input}
-              onPress={() => setShowTravellersDropdown(!showTravellersDropdown)}
-            >
-              <Text style={[
-                styles.inputText,
-                !travellers && styles.placeholderText
-              ]}>
-                {travellers ? `${travellers} Traveller${travellers === '1' ? '' : 's'}` : 'Select number of travellers'}
-              </Text>
-            </TouchableOpacity>
+              placeholder="Enter number of travellers"
+              value={travellers}
+              onChangeText={setTravellers}
+              keyboardType="numeric"
+              placeholderTextColor={COLORS.textLight}
+            />
           </View>
 
           {/* Plan Trip Button */}
           <TouchableOpacity
-            style={styles.planButton}
+            style={[styles.planButton, loading && styles.planButtonDisabled]}
             onPress={handlePlanTrip}
             disabled={loading}
           >
@@ -274,7 +236,7 @@ export default function TravelPlannerScreen() {
         {travelPlan && (
           <View style={styles.travelPlanSection}>
             <Text style={styles.sectionTitle}>Your Travel Plan</Text>
-            <View style={styles.travelPlanCard}>
+            <View style={[styles.card, styles.travelPlanCard]}>
               <View style={styles.planHeader}>
                 <Text style={styles.planTitle}>{travelPlan.city}</Text>
                 <View style={styles.planMetadata}>
@@ -363,170 +325,19 @@ export default function TravelPlannerScreen() {
                 ))}
               </View>
             </View>
-          </View>
-        )}
 
-        {/* Travellers Dropdown Overlay */}
-        {showTravellersDropdown && (
-          <View style={styles.overlay}>
-            <View style={styles.dropdownCard}>
-              {['1', '2', '3', '4', '5+'].map((num) => (
-                <TouchableOpacity
-                  key={num}
-                  style={[
-                    styles.dropdownItem,
-                    travellers === num && styles.selectedDropdownItem
-                  ]}
-                  onPress={() => {
-                    setTravellers(num)
-                    setShowTravellersDropdown(false)
-                  }}
-                >
-                  <Text style={[
-                    styles.dropdownText,
-                    travellers === num && styles.selectedDropdownText
-                  ]}>
-                    {num} Traveller{num === '1' ? '' : 's'}
-                  </Text>
-                </TouchableOpacity>
+            <View style={styles.tipsContainer}>
+              <Text style={styles.tipsTitle}>Eco-Friendly Tips</Text>
+              {travelPlan.ecoFriendlyTips.map((tip, index) => (
+                <View key={index} style={styles.tipItem}>
+                  <MaterialCommunityIcons name="leaf-circle-outline" size={20} color={COLORS.leafGreen} />
+                  <Text style={styles.tipText}>{tip}</Text>
+                </View>
               ))}
             </View>
           </View>
         )}
       </ScrollView>
-
-      {/* Sidebar Modal */}
-      <Modal
-        visible={showSidebar}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowSidebar(false)}
-      >
-        <View style={styles.sidebarOverlay}>
-          <BlurView intensity={20} style={StyleSheet.absoluteFill} />
-          <View style={styles.sidebar}>
-            {/* Profile Section */}
-            <View style={styles.sidebarHeader}>
-              <View style={styles.profileSection}>
-                <View style={styles.largeAvatar}>
-                  {user?.imageUrl ? (
-                    <Image
-                      source={{ uri: user.imageUrl }}
-                      style={styles.avatarImage}
-                    />
-                  ) : (
-                    <Text style={styles.largeAvatarText}>
-                      {user?.firstName?.[0] || user?.username?.[0] || 'A'}
-                    </Text>
-                  )}
-                </View>
-                <Text style={styles.profileName}>
-                  {user?.fullName || user?.username || 'Guest User'}
-                </Text>
-                <Text style={styles.profileEmail}>
-                  {user?.emailAddresses[0]?.emailAddress || 'No email provided'}
-                </Text>
-              </View>
-            </View>
-
-            {/* Menu Options */}
-            <ScrollView style={styles.menuOptions}>
-              {/* Your Profile */}
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => handleNavigation('profile')}
-              >
-                <View style={styles.menuItemContent}>
-                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(34, 197, 94, 0.1)' }]}>
-                    <Ionicons name="person" size={24} color={COLORS.leafGreen} />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>Your Profile</Text>
-                    <Text style={styles.menuDescription}>View and edit your profile details</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
-              </TouchableOpacity>
-
-              {/* Merchandise */}
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => handleNavigation('merchandise')}
-              >
-                <View style={styles.menuItemContent}>
-                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(246, 173, 85, 0.1)' }]}>
-                    <Ionicons name="shirt" size={24} color={COLORS.iconOrange} />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>Merchandise</Text>
-                    <Text style={styles.menuDescription}>Explore eco-friendly products</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
-              </TouchableOpacity>
-
-              {/* About Us */}
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => handleNavigation('about')}
-              >
-                <View style={styles.menuItemContent}>
-                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(99, 179, 237, 0.1)' }]}>
-                    <Ionicons name="information-circle" size={24} color={COLORS.iconBlue} />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>About Us</Text>
-                    <Text style={styles.menuDescription}>Learn about our mission</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
-              </TouchableOpacity>
-
-              {/* Contact Us */}
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => handleNavigation('contact')}
-              >
-                <View style={styles.menuItemContent}>
-                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(104, 211, 145, 0.1)' }]}>
-                    <Ionicons name="mail" size={24} color={COLORS.iconGreen} />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>Contact Us</Text>
-                    <Text style={styles.menuDescription}>Get in touch with our team</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
-              </TouchableOpacity>
-
-              {/* Support */}
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => handleNavigation('support')}
-              >
-                <View style={styles.menuItemContent}>
-                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(124, 58, 237, 0.1)' }]}>
-                    <Ionicons name="help-buoy" size={24} color={COLORS.purple} />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>Support</Text>
-                    <Text style={styles.menuDescription}>Help and documentation</Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
-              </TouchableOpacity>
-            </ScrollView>
-
-            {/* Close Button */}
-            <TouchableOpacity
-              style={styles.closeSidebarButton}
-              onPress={() => setShowSidebar(false)}
-            >
-              <Text style={styles.closeSidebarText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   )
 }
@@ -570,32 +381,49 @@ function getTransportIcon(mode: string): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     height: 280,
     overflow: 'hidden',
+    position: 'relative',
+    zIndex: 1,
   },
-  headerOverlay: {
-    opacity: 0.5,
+  headerBackground: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   headerContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
     position: 'absolute',
-    top: 0,
+    top: 20,
+    right: 20,
+    zIndex: 2,
+  },
+  titleContainer: {
+    position: 'absolute',
+    top: '50%',
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    transform: [{ translateY: -20 }],
     alignItems: 'center',
-    paddingHorizontal: 20,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '700',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.1)',
-    textShadowOffset: { width: 0, height: 2 },
+    color: '#0077B6',
+    textAlign: 'center',
+    textShadowColor: 'rgba(255,255,255,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
+    letterSpacing: 0.5,
   },
   avatarButton: {
     width: 40,
@@ -606,6 +434,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   avatarText: {
     color: '#FFFFFF',
@@ -614,29 +447,38 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    marginTop: -60,
+    marginTop: -40,
+    position: 'relative',
+    zIndex: 2,
   },
   scrollContent: {
     paddingBottom: 32,
   },
   card: {
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 24,
+    backgroundColor: 'transparent',
     padding: 24,
     margin: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  planCard: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
   inputGroup: {
     marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 12,
+    padding: 12,
   },
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    paddingHorizontal: 4,
   },
   label: {
     fontSize: 16,
@@ -645,13 +487,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   input: {
-    backgroundColor: COLORS.cardBackground,
-    borderWidth: 1,
-    borderColor: COLORS.inputBorder,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderWidth: 0,
     padding: 12,
     fontSize: 16,
     color: COLORS.text,
+    borderRadius: 12,
   },
   row: {
     flexDirection: 'row',
@@ -681,17 +522,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   placeCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: 'transparent',
+    marginHorizontal: 0,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    padding: 16,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   placeIcon: {
     width: 48,
@@ -734,37 +571,6 @@ const styles = StyleSheet.create({
     color: COLORS.textLight,
     lineHeight: 20,
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  dropdownCard: {
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 16,
-    padding: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  dropdownItem: {
-    padding: 16,
-    borderRadius: 8,
-  },
-  selectedDropdownItem: {
-    backgroundColor: 'rgba(124, 58, 237, 0.1)',
-  },
-  dropdownText: {
-    fontSize: 16,
-    color: COLORS.text,
-  },
-  selectedDropdownText: {
-    color: COLORS.purple,
-    fontWeight: '600',
-  },
   planButton: {
     backgroundColor: COLORS.primary,
     borderRadius: 12,
@@ -782,14 +588,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   travelPlanCard: {
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: 'transparent',
+    marginHorizontal: 0,
+    marginBottom: 20,
   },
   planHeader: {
     marginBottom: 12,
@@ -816,10 +617,11 @@ const styles = StyleSheet.create({
   budgetContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.03)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     padding: 16,
     borderRadius: 12,
     marginBottom: 20,
+    borderWidth: 0,
   },
   budgetInfo: {
     alignItems: 'center',
@@ -835,9 +637,8 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   itineraryContainer: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.inputBorder,
     paddingTop: 16,
+    borderTopWidth: 0,
   },
   itineraryTitle: {
     fontSize: 18,
@@ -881,11 +682,10 @@ const styles = StyleSheet.create({
   ecoTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(104, 211, 145, 0.1)',
+    backgroundColor: 'rgba(104, 211, 145, 0.15)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: 'flex-start',
   },
   ecoTagText: {
     fontSize: 12,
@@ -926,7 +726,7 @@ const styles = StyleSheet.create({
   activityType: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
@@ -961,9 +761,10 @@ const styles = StyleSheet.create({
   },
   transportInfo: {
     marginTop: 8,
-    backgroundColor: 'rgba(0,0,0,0.02)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 8,
     padding: 8,
+    borderWidth: 0,
   },
   transportHeader: {
     flexDirection: 'row',
@@ -989,113 +790,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textLight,
     fontWeight: '500',
-  },
-  sidebarOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  sidebar: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: '80%',
-    backgroundColor: COLORS.white,
-    paddingTop: 50,
-    borderTopLeftRadius: 25,
-    borderBottomLeftRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: -2, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  sidebarHeader: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-  },
-  profileSection: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  largeAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.purple,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 3,
-    borderColor: COLORS.leafGreen,
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 40,
-  },
-  largeAvatarText: {
-    fontSize: 32,
-    color: COLORS.white,
-    fontWeight: 'bold',
-  },
-  profileName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  profileEmail: {
-    fontSize: 14,
-    color: COLORS.textLight,
-  },
-  menuOptions: {
-    flex: 1,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-    justifyContent: 'space-between',
-  },
-  menuItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  menuIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  menuTextContainer: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 2,
-  },
-  menuDescription: {
-    fontSize: 12,
-    color: COLORS.textLight,
-  },
-  closeSidebarButton: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-    alignItems: 'center',
-  },
-  closeSidebarText: {
-    fontSize: 16,
-    color: COLORS.textLight,
-    fontWeight: '600',
   },
 })
