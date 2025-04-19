@@ -147,6 +147,7 @@ export default function TabOneScreen() {
   const [errorMessage, setErrorMessage] = useState('')
   const [showAchievement, setShowAchievement] = useState(false)
   const [achievementPoints, setAchievementPoints] = useState(0)
+  const [showRouteInfo, setShowRouteInfo] = useState(false)
 
   // Load saved route data from AsyncStorage on initial load
   useEffect(() => {
@@ -654,6 +655,7 @@ export default function TabOneScreen() {
             setRouteSaved(false)
             setEarnedPoints(null)
             setSavedRouteHistory(null)
+            setShowRouteInfo(false)
 
             // Clear the route on the map
             webViewRef.current?.injectJavaScript('clearRoute(); true;')
@@ -917,13 +919,6 @@ export default function TabOneScreen() {
       isElectric: true,
       isCNG: false,
     })
-    vehicles.push({
-      vehicle: 'taxi',
-      greenScore: 10,
-      co2Emission: `${(distance * 0.15).toFixed(2)} kg`,
-      isElectric: false,
-      isCNG: false,
-    })
 
     // For medium and long distances
     if (distance >= 3) {
@@ -1032,6 +1027,8 @@ export default function TabOneScreen() {
         webViewRef.current?.injectJavaScript(
           `displayRoute(${JSON.stringify(geoJson)}); true;`
         )
+
+        setShowRouteInfo(true)
       } else {
         throw new Error('No route found between these locations')
       }
@@ -1153,6 +1150,10 @@ export default function TabOneScreen() {
     }
   }
 
+  const handleCloseRouteInfo = () => {
+    setShowRouteInfo(false);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -1237,8 +1238,14 @@ export default function TabOneScreen() {
         </TouchableOpacity>
       )}
 
-      {routeDetails && routeDetails.recommendedVehicles && (
+      {routeDetails && routeDetails.recommendedVehicles && showRouteInfo && (
         <View style={styles.routeInfoCard}>
+          <TouchableOpacity 
+            style={styles.closeRouteButton} 
+            onPress={handleCloseRouteInfo}
+          >
+            <Ionicons name="close" size={24} color={COLORS.soil} />
+          </TouchableOpacity>
           <Text style={styles.routeInfoTitle}>{routeInfo}</Text>
           <Text style={styles.routeInfoDetail}>
             Distance: {routeDetails.distance}
@@ -1285,12 +1292,6 @@ export default function TabOneScreen() {
                     ? '🛺'
                     : vehicle.vehicle === 'cycle'
                     ? '🚲'
-                    : vehicle.vehicle === 'taxi'
-                    ? '🚖'
-                    : vehicle.vehicle === 'bus'
-                    ? '🚌'
-                    : vehicle.vehicle === 'metro'
-                    ? '🚇'
                     : vehicle.vehicle === 'rickshaw'
                     ? '🛺'
                     : '🚗'}
@@ -2073,5 +2074,12 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  closeRouteButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1,
+    padding: 5,
   },
 })
