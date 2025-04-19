@@ -17,6 +17,7 @@ import {
   ImageBackground,
   Platform,
   SafeAreaView,
+  Modal,
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { Ionicons } from '@expo/vector-icons'
@@ -66,6 +67,8 @@ export default function LeaderboardScreen() {
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
+  const [userEcoCoins, setUserEcoCoins] = useState(0);
+  const [showCoinInfo, setShowCoinInfo] = useState(false);
 
   // Initialize user data when signed in
   useEffect(() => {
@@ -144,7 +147,7 @@ export default function LeaderboardScreen() {
   // Fetch leaderboard data
   const fetchLeaderboard = async () => {
     try {
-      
+
       setRefreshing(true)
       console.log('Fetching leaderboard data...')
 
@@ -469,23 +472,21 @@ export default function LeaderboardScreen() {
     }, [isSignedIn])
   );
 
+  // Calculate eco coins when user rank changes
+  useEffect(() => {
+    if (userRank) {
+      const coins = Math.floor(userRank.green_score / 200);
+      setUserEcoCoins(coins);
+    }
+  }, [userRank]);
+
   // Render a user item in the leaderboard
   const renderUserItem = ({ item }: { item: UserData }) => {
     const isCurrentUser = isSignedIn && user && item.id === getUUIDFromClerkID(user.id)
 
-    // Determine the best name to display
-    const displayName = (() => {
-      // First priority: If this is current user, use Clerk's data directly
-      if (isCurrentUser && user) {
-        return user.username || user.fullName || item.username || 'Anonymous User';
-      }
-      // Second priority: Use Firebase data
-      return item.username || 'Anonymous User';
-    })();
-
     return (
       <View style={[styles.userItem, isCurrentUser && styles.currentUserItem]}>
-        <ThemedText style={styles.rankText}>{item.rank}.</ThemedText>
+        <ThemedText style={[styles.rankText, isCurrentUser && styles.currentUserText]}>{item.rank}.</ThemedText>
 
         <View style={styles.userInfo}>
           <View style={styles.profileImageContainer}>
@@ -501,12 +502,12 @@ export default function LeaderboardScreen() {
             )}
           </View>
 
-          <ThemedText style={styles.userName}>
-            {displayName}
+          <ThemedText style={[styles.userName, isCurrentUser && styles.currentUserText]}>
+            {item.username}
           </ThemedText>
         </View>
 
-        <View style={styles.scoreContainer}>
+        <View style={[styles.scoreContainer, isCurrentUser && styles.currentUserScore]}>
           <ThemedText style={styles.scoreText}>{item.green_score}</ThemedText>
         </View>
       </View>
@@ -525,18 +526,33 @@ export default function LeaderboardScreen() {
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <ThemedText style={styles.headerTitle}>LeaderBoard</ThemedText>
-            {isSignedIn && (
-              <TouchableOpacity
-                style={styles.signOutButton}
-                onPress={() => setShowSignOutConfirm(true)}
-              >
-                <Ionicons
-                  name="log-out-outline"
-                  size={24}
-                  color={COLORS.bark}
-                />
-              </TouchableOpacity>
-            )}
+            <View style={styles.headerRightContainer}>
+              {isSignedIn && (
+                <TouchableOpacity
+                  style={styles.ecoCoinsContainer}
+                  onPress={() => setShowCoinInfo(true)}
+                >
+                  <View style={styles.coinIconContainer}>
+                    <View style={styles.coinInner}>
+                      <ThemedText style={styles.coinSymbol}>₳</ThemedText>
+                    </View>
+                  </View>
+                  <ThemedText style={styles.ecoCoinsText}>{userEcoCoins}</ThemedText>
+                </TouchableOpacity>
+              )}
+              {isSignedIn && (
+                <TouchableOpacity
+                  style={styles.signOutButton}
+                  onPress={() => setShowSignOutConfirm(true)}
+                >
+                  <Ionicons
+                    name="log-out-outline"
+                    size={24}
+                    color={COLORS.bark}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {isSignedIn ? (
@@ -661,6 +677,54 @@ export default function LeaderboardScreen() {
             </View>
           </View>
         )}
+
+        {/* Coin Info Modal */}
+        <Modal
+          visible={showCoinInfo}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowCoinInfo(false)}
+        >
+          <View style={styles.coinModalOverlay}>
+            <View style={styles.coinModalContainer}>
+              <View style={styles.coinModalHeader}>
+                <View style={styles.largeCoinIcon}>
+                  <View style={styles.largeCoinInner}>
+                    <ThemedText style={styles.largeCoinSymbol}>₳</ThemedText>
+                  </View>
+                </View>
+                <ThemedText style={styles.coinModalTitle}>Eco Coins</ThemedText>
+              </View>
+
+              <View style={styles.coinModalContent}>
+                <ThemedText style={styles.coinModalDescription}>
+                  Use your eco coins to get exclusive benefits:
+                </ThemedText>
+
+                <View style={styles.benefitItem}>
+                  <Ionicons name="airplane" size={24} color={COLORS.leafGreen} />
+                  <ThemedText style={styles.benefitText}>
+                    Get discounts on eco-friendly travel options
+                  </ThemedText>
+                </View>
+
+                <View style={styles.benefitItem}>
+                  <Ionicons name="shirt" size={24} color={COLORS.leafGreen} />
+                  <ThemedText style={styles.benefitText}>
+                    Purchase exclusive GoGreen merchandise
+                  </ThemedText>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.closeModalButton}
+                onPress={() => setShowCoinInfo(false)}
+              >
+                <ThemedText style={styles.closeModalButtonText}>Got it!</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </ImageBackground>
     </SafeAreaView>
   )
@@ -693,9 +757,60 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.darkGreen,
   },
+  headerRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  ecoCoinsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightestGreen,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.leafGreen,
+    gap: 6,
+  },
+  coinIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.leafGreen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  coinInner: {
+    width: '90%',
+    height: '90%',
+    borderRadius: 15,
+    backgroundColor: COLORS.leafGreen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.white,
+  },
+  coinSymbol: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  ecoCoinsText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+  },
   signOutButton: {
     padding: 8,
-    borderRadius: 20,
+    borderRadius: 25,
     backgroundColor: 'rgba(133, 77, 14, 0.1)',
   },
   userProfileContainer: {
@@ -749,7 +864,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.leafGreen,
     paddingVertical: 4,
     paddingHorizontal: 12,
-    borderRadius: 16,
+    borderRadius: 25,
     alignSelf: 'flex-start',
   },
   userScoreText: {
@@ -760,7 +875,7 @@ const styles = StyleSheet.create({
   signInButton: {
     backgroundColor: COLORS.leafGreen,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 30,
     alignItems: 'center',
     marginVertical: 8,
   },
@@ -797,9 +912,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     backgroundColor: COLORS.white,
-    borderRadius: 10,
+    borderRadius: 25,
     marginVertical: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -809,8 +924,14 @@ const styles = StyleSheet.create({
   },
   currentUserItem: {
     backgroundColor: COLORS.paleGreen,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: COLORS.leafGreen,
+    transform: [{ scale: 1.02 }],
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   rankText: {
     fontSize: 18,
@@ -853,7 +974,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.leafGreen,
     paddingVertical: 4,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: 25,
   },
   scoreText: {
     fontSize: 16,
@@ -885,7 +1006,7 @@ const styles = StyleSheet.create({
   },
   confirmModal: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 30,
     padding: 20,
     width: '80%',
     alignItems: 'center',
@@ -915,7 +1036,7 @@ const styles = StyleSheet.create({
   confirmButton: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 25,
     flex: 1,
     marginHorizontal: 5,
     alignItems: 'center',
@@ -933,6 +1054,114 @@ const styles = StyleSheet.create({
   },
   signOutButtonText: {
     color: COLORS.white,
+  },
+  currentUserText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+  },
+  currentUserScore: {
+    backgroundColor: COLORS.darkGreen,
+  },
+  coinModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  coinModalContainer: {
+    backgroundColor: COLORS.white,
+    borderRadius: 30,
+    padding: 24,
+    width: '85%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  coinModalHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  largeCoinIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.leafGreen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: COLORS.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    marginBottom: 12,
+  },
+  largeCoinInner: {
+    width: '90%',
+    height: '90%',
+    borderRadius: 30,
+    backgroundColor: COLORS.leafGreen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  largeCoinSymbol: {
+    color: COLORS.white,
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+  coinModalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+    marginBottom: 8,
+  },
+  coinModalContent: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  coinModalDescription: {
+    fontSize: 16,
+    color: COLORS.soil,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightestGreen,
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.leafGreen,
+  },
+  benefitText: {
+    marginLeft: 12,
+    fontSize: 15,
+    color: COLORS.darkGreen,
+    flex: 1,
+  },
+  closeModalButton: {
+    backgroundColor: COLORS.leafGreen,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 25,
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  closeModalButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 })
 
