@@ -172,20 +172,21 @@ export default function TabOneScreen() {
             setRouteDetails(parsedData.routeDetails);
             setSelectedVehicle(parsedData.selectedVehicle);
             setRouteInfo(parsedData.routeInfo);
+            setRouteCoordinates(parsedData.routeCoordinates);
+            setSelectedOptions(parsedData.selectedOptions);
 
-            // If we have route coordinates, restore them on the map
-            if (parsedData.routeCoordinates && parsedData.routeCoordinates.length > 0) {
-              setRouteCoordinates(parsedData.routeCoordinates);
-
-              // Wait for the WebView to initialize before drawing the route
-              setTimeout(() => {
-                if (parsedData.startLocation && webViewRef.current) {
+            // Wait for the WebView to initialize before drawing the route
+            setTimeout(() => {
+              if (webViewRef.current) {
+                // Add start marker
+                if (parsedData.startLocation) {
                   webViewRef.current.injectJavaScript(
                     `addStartMarker(${parsedData.startLocation.latitude}, ${parsedData.startLocation.longitude}); true;`
                   );
                 }
 
-                if (parsedData.endLocation && webViewRef.current) {
+                // Add end marker
+                if (parsedData.endLocation) {
                   webViewRef.current.injectJavaScript(
                     `addEndMarker(${parsedData.endLocation.latitude}, ${parsedData.endLocation.longitude}); true;`
                   );
@@ -210,21 +211,12 @@ export default function TabOneScreen() {
                     ],
                   };
 
-                  webViewRef.current?.injectJavaScript(
+                  webViewRef.current.injectJavaScript(
                     `displayRoute(${JSON.stringify(geoJson)}); true;`
                   );
                 }
-              }, 1000); // Give the map a second to initialize
-            }
-
-            setSavedRouteHistory({
-              startLocation: parsedData.startLocation,
-              endLocation: parsedData.endLocation,
-              routeDetails: parsedData.routeDetails,
-              selectedVehicle: parsedData.selectedVehicle,
-              routeInfo: parsedData.routeInfo,
-              earnedPoints: parsedData.earnedPoints
-            });
+              }
+            }, 1000); // Give the map a second to initialize
           }
         }
       } catch (error) {
@@ -953,14 +945,13 @@ export default function TabOneScreen() {
   }
 
   const findRoute = async () => {
-    setRouteSaved(false)
-    if (!startLocation || !endLocation) return
+    if (!startLocation || !endLocation) return;
 
-    setLoading(true)
-    setRouteError(false) // Reset error state
+    setLoading(true);
+    setRouteError(false);
 
     try {
-      const routeType = getTomTomRouteType(selectedOptions.type)
+      const routeType = getTomTomRouteType(selectedOptions.type);
       // Use car as default for finding route
       const vehicleType = 'car'
 
@@ -1072,20 +1063,12 @@ export default function TabOneScreen() {
       !endLocation ||
       !selectedVehicle
     )
-      return
+      return;
 
     try {
-      const distance = parseFloat(routeDetails.distance.replace(' km', ''))
-
-      // Make sure we have the user UUID
-      const userUUID = getUUIDFromClerkID(user.id)
-
-      // Use the green score directly from the selected vehicle
-      const greenPoints = selectedVehicle.greenScore
-
-      console.log(
-        `Saving route with ${greenPoints} green points for user ${userUUID}`
-      )
+      const distance = parseFloat(routeDetails.distance.replace(' km', ''));
+      const userUUID = getUUIDFromClerkID(user.id);
+      const greenPoints = selectedVehicle.greenScore;
 
       const routeData = {
         user_id: userUUID,
@@ -1095,26 +1078,20 @@ export default function TabOneScreen() {
         end_lng: endLocation.longitude,
         distance: distance,
         duration: routeDetails.duration,
-        co2_emission: parseFloat(
-          selectedVehicle.co2Emission.replace(' kg', '')
-        ),
+        co2_emission: parseFloat(selectedVehicle.co2Emission.replace(' kg', '')),
         vehicle_type: selectedVehicle.vehicle,
         route_type: selectedOptions.type,
         green_points: greenPoints,
-      }
+      };
 
-      // Save the route data which should also add green points
-      await saveRoute(routeData)
+      await saveRoute(routeData);
 
-      // Set the earned points and update the UI
-      setEarnedPoints(greenPoints)
-      setRouteSaved(true)
+      setEarnedPoints(greenPoints);
+      setRouteSaved(true);
+      setAchievementPoints(greenPoints);
+      setShowAchievement(true);
 
-      // Set achievement data
-      setAchievementPoints(greenPoints)
-      setShowAchievement(true)
-
-      // Save route data to AsyncStorage for persistence
+      // Save complete route data to AsyncStorage
       const persistentRouteData = {
         routeSaved: true,
         startLocation,
@@ -1123,12 +1100,12 @@ export default function TabOneScreen() {
         selectedVehicle,
         routeInfo,
         earnedPoints: greenPoints,
-        routeCoordinates
-      }
+        routeCoordinates,
+        selectedOptions
+      };
 
-      await AsyncStorage.setItem('SAVED_ROUTE_DATA', JSON.stringify(persistentRouteData))
+      await AsyncStorage.setItem('SAVED_ROUTE_DATA', JSON.stringify(persistentRouteData));
 
-      // Save route history for reference
       setSavedRouteHistory({
         startLocation,
         endLocation,
@@ -1136,16 +1113,16 @@ export default function TabOneScreen() {
         selectedVehicle,
         routeInfo,
         earnedPoints: greenPoints
-      })
+      });
     } catch (error) {
-      console.error('Error saving route data:', error)
+      console.error('Error saving route data:', error);
       Alert.alert(
         'Save Failed',
         'There was an error saving your route data. Please try again.',
         [{ text: 'OK' }]
-      )
+      );
     }
-  }
+  };
 
   // Restore the resetMapMarkers function which was accidentally removed
   // Function to reset just the map markers without affecting route data
@@ -1212,6 +1189,12 @@ export default function TabOneScreen() {
       'No new notifications',
       [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
     );
+  };
+
+  // Modify the routeInfoCard close button handler
+  const handleCloseRoute = () => {
+    // Just hide the route info card without clearing the route
+    setRouteDetails(null);
   };
 
   return (
@@ -1315,11 +1298,7 @@ export default function TabOneScreen() {
             <Text style={styles.routeInfoTitle}>{routeInfo}</Text>
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={() => {
-                setRouteDetails(null);
-                setRouteCoordinates([]);
-                webViewRef.current?.injectJavaScript('clearRoute(); true;');
-              }}
+              onPress={handleCloseRoute}
             >
               <Ionicons name="close" size={20} color={COLORS.soil} />
             </TouchableOpacity>
@@ -1412,7 +1391,7 @@ export default function TabOneScreen() {
           </ScrollView>
 
           <View style={styles.routeButtonsContainer}>
-            <TouchableOpacity style={styles.resetButton} onPress={resetRoute}>
+            <TouchableOpacity style={styles.resetButton} onPress={() => setShowResetRouteModal(true)}>
               <Text style={styles.resetButtonText}>Reset Route</Text>
             </TouchableOpacity>
 
@@ -1662,13 +1641,13 @@ export default function TabOneScreen() {
                 style={styles.resetRouteCancelButton}
                 onPress={() => setShowResetRouteModal(false)}
               >
-                <Text style={{color: '#666', fontWeight: 'bold', fontSize: 16}}>Cancel</Text>
+                <Text style={styles.resetRouteCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.resetRouteConfirmButton}
                 onPress={handleResetRoute}
               >
-                <Text style={{color: 'white', fontWeight: 'bold', fontSize: 16}}>Reset Route</Text>
+                <Text style={styles.resetRouteConfirmText}>Reset Route</Text>
               </TouchableOpacity>
             </View>
           </View>
