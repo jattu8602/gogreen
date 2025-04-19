@@ -154,6 +154,7 @@ export default function TabOneScreen() {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [hasNotifications, setHasNotifications] = useState(false);
   const searchAnimation = useRef(new Animated.Value(0)).current;
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Load saved route data from AsyncStorage on initial load
   useEffect(() => {
@@ -712,29 +713,74 @@ export default function TabOneScreen() {
     }
   }
 
-  const searchLocation = async () => {
-    if (!searchQuery.trim()) return
+  // Modify the search functionality
+  const handleSearchInput = (text: string) => {
+    setSearchQuery(text);
+
+    // Clear any existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Set new timeout for auto-search
+    const timeout = setTimeout(() => {
+      if (text.trim().length > 2) { // Only search if more than 2 characters
+        searchLocation(text);
+      } else {
+        setShowSearchResults(false);
+      }
+    }, 500); // 500ms delay
+
+    setSearchTimeout(timeout);
+  };
+
+  const searchLocation = async (query: string) => {
+    if (!query.trim()) return;
 
     try {
       const response = await fetch(
         `https://api.tomtom.com/search/2/search/${encodeURIComponent(
-          searchQuery
+          query
         )}.json?key=${TOMTOM_API_KEY}`
-      )
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (data.results && data.results.length > 0) {
-        setSearchResults(data.results)
-        setShowSearchResults(true)
-      } else {
-        Alert.alert('No Results', 'No locations found for your search')
+        setSearchResults(data.results);
+        setShowSearchResults(true);
       }
     } catch (error) {
-      console.error('Error searching location:', error)
-      Alert.alert('Error', 'Failed to search for locations')
+      console.error('Error searching location:', error);
+      Alert.alert('Error', 'Failed to search for locations');
     }
-  }
+  };
+
+  // Update the search results container to show below the search bar
+  const renderSearchResults = () => {
+    if (!showSearchResults) return null;
+
+    return (
+      <View style={[styles.searchResultsContainer, { top: 90 }]}>
+        <ScrollView style={styles.searchResultsList}>
+          {searchResults.map((result, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.searchResultItem}
+              onPress={() => selectSearchResult(result)}
+            >
+              <Text style={styles.searchResultName}>
+                {result.poi?.name || result.address.freeformAddress}
+              </Text>
+              <Text style={styles.searchResultAddress}>
+                {result.address.freeformAddress}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
 
   const selectSearchResult = (result: any) => {
     const coordinate = {
@@ -1193,11 +1239,10 @@ export default function TabOneScreen() {
             </TouchableOpacity>
             <TextInput
               style={styles.searchInput}
-              placeholder="Search for a location..."
+              placeholder={!startLocation ? "Enter starting point..." : "Enter destination..."}
               placeholderTextColor="#999"
               value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={searchLocation}
+              onChangeText={handleSearchInput}
               autoFocus
             />
           </View>
@@ -1207,6 +1252,8 @@ export default function TabOneScreen() {
           </TouchableOpacity>
         )}
       </Animated.View>
+
+      {isSearchExpanded && renderSearchResults()}
 
       {/* Notification Icon - Only show when search is not expanded */}
       {!isSearchExpanded && (
@@ -1731,11 +1778,10 @@ const styles = StyleSheet.create({
   },
   searchResultsContainer: {
     position: 'absolute',
-    top: 100,
     left: 10,
     right: 10,
     backgroundColor: 'white',
-    borderRadius: 25,
+    borderRadius: 20,
     maxHeight: 300,
     zIndex: 2,
     shadowColor: '#000',
