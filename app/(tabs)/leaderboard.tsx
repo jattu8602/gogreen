@@ -144,6 +144,7 @@ export default function LeaderboardScreen() {
   // Fetch leaderboard data
   const fetchLeaderboard = async () => {
     try {
+      
       setRefreshing(true)
       console.log('Fetching leaderboard data...')
 

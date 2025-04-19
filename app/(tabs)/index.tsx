@@ -147,6 +147,8 @@ export default function TabOneScreen() {
   const [errorMessage, setErrorMessage] = useState('')
   const [showAchievement, setShowAchievement] = useState(false)
   const [achievementPoints, setAchievementPoints] = useState(0)
+  const [showResetMarkersModal, setShowResetMarkersModal] = useState(false)
+  const [showResetRouteModal, setShowResetRouteModal] = useState(false)
 
   // Load saved route data from AsyncStorage on initial load
   useEffect(() => {
@@ -633,85 +635,33 @@ export default function TabOneScreen() {
   }
 
   const resetRoute = () => {
-    Alert.alert(
-      'Reset Route',
-      'Are you sure you want to reset this route? Any saved data will be cleared.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Reset',
-          onPress: async () => {
-            // Clear all route data
-            setStartLocation(null)
-            setEndLocation(null)
-            setRouteCoordinates([])
-            setRouteInfo('')
-            setRouteDetails(null)
-            setAIRouteDescription('')
-            setRouteSaved(false)
-            setEarnedPoints(null)
-            setSavedRouteHistory(null)
-
-            // Clear the route on the map
-            webViewRef.current?.injectJavaScript('clearRoute(); true;')
-
-            // Clear saved route data from AsyncStorage
-            try {
-              await AsyncStorage.removeItem('SAVED_ROUTE_DATA')
-            } catch (error) {
-              console.error('Error clearing saved route data:', error)
-            }
-          },
-          style: 'destructive',
-        },
-      ]
-    )
+    setShowResetRouteModal(true)
   }
 
-  // Function to reset just the map markers without affecting route data
-  const resetMapMarkers = () => {
-    // Show confirmation alert before clearing markers
-    Alert.alert(
-      'Reset Map Markers',
-      'Are you sure you want to remove all markers from the map?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Reset',
-          onPress: () => {
-            // Make sure the WebView is properly initialized
-            if (webViewRef.current) {
-              try {
-                setStartLocation(null)
-                setEndLocation(null)
-                // Use the improved clearMarkers function in the WebView
-                webViewRef.current.injectJavaScript(
-                  'try { clearMarkers(); } catch(e) { console.error("Error in clearMarkers:", e); } true;'
-                )
-              } catch (error) {
-                console.error('Error resetting map markers:', error)
-                Alert.alert(
-                  'Error',
-                  'Failed to reset map markers. Please try again.'
-                )
-              }
-            } else {
-              Alert.alert(
-                'Error',
-                'Map is not initialized yet. Please wait a moment and try again.'
-              )
-            }
-          },
-          style: 'destructive',
-        },
-      ]
-    )
+  const handleResetRoute = async () => {
+    // Clear all route data
+    setStartLocation(null)
+    setEndLocation(null)
+    setRouteCoordinates([])
+    setRouteInfo('')
+    setRouteDetails(null)
+    setAIRouteDescription('')
+    setRouteSaved(false)
+    setEarnedPoints(null)
+    setSavedRouteHistory(null)
+
+    // Clear the route on the map
+    webViewRef.current?.injectJavaScript('clearRoute(); true;')
+
+    // Clear saved route data from AsyncStorage
+    try {
+      await AsyncStorage.removeItem('SAVED_ROUTE_DATA')
+    } catch (error) {
+      console.error('Error clearing saved route data:', error)
+    }
+
+    // Hide the modal after reset
+    setShowResetRouteModal(false)
   }
 
   const handleWebViewMessage = (event: any) => {
@@ -1153,6 +1103,43 @@ export default function TabOneScreen() {
     }
   }
 
+  // Restore the resetMapMarkers function which was accidentally removed
+  // Function to reset just the map markers without affecting route data
+  const resetMapMarkers = () => {
+    // Show custom modal instead of default Alert
+    setShowResetMarkersModal(true);
+  }
+
+  // Function to handle actual reset of map markers
+  const handleResetMapMarkers = () => {
+    // Make sure the WebView is properly initialized
+    if (webViewRef.current) {
+      try {
+        setStartLocation(null)
+        setEndLocation(null)
+        // Use the improved clearMarkers function in the WebView
+        webViewRef.current.injectJavaScript(
+          'try { clearMarkers(); } catch(e) { console.error("Error in clearMarkers:", e); } true;'
+        )
+        // Hide the modal after reset
+        setShowResetMarkersModal(false);
+      } catch (error) {
+        console.error('Error resetting map markers:', error)
+        Alert.alert(
+          'Error',
+          'Failed to reset map markers. Please try again.'
+        )
+        setShowResetMarkersModal(false);
+      }
+    } else {
+      Alert.alert(
+        'Error',
+        'Map is not initialized yet. Please wait a moment and try again.'
+      )
+      setShowResetMarkersModal(false);
+    }
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -1357,46 +1344,80 @@ export default function TabOneScreen() {
 
       <Modal visible={showOptions} transparent animationType="slide">
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Route Options</Text>
+          <View style={styles.enhancedModalContent}>
+            <View style={styles.modalHeaderContainer}>
+              <View style={styles.modalIconContainer}>
+                <Text style={styles.modalHeaderEmoji}>🧭</Text>
+              </View>
+              <Text style={styles.enhancedModalTitle}>Choose Your Route</Text>
+            </View>
 
-            <ScrollView>
-              <Text style={styles.optionTitle}>Route Type:</Text>
-              {['fastest', 'cost-effective', 'low-traffic', 'long-drive'].map(
-                (type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.optionButton,
-                      selectedOptions.type === type && styles.selectedOption,
-                    ]}
-                    onPress={() =>
-                      setSelectedOptions({
-                        type: type as any,
-                      })
-                    }
-                  >
-                    <Text style={styles.optionText}>{type}</Text>
-                  </TouchableOpacity>
-                )
-              )}
+            <ScrollView style={styles.optionsScrollView}>
+              <Text style={styles.enhancedOptionTitle}>Route Type:</Text>
+              {[
+                { type: 'fastest', emoji: '⚡', description: 'Get there as quickly as possible' },
+                { type: 'cost-effective', emoji: '🍃', description: 'Save fuel and reduce emissions' },
+                { type: 'low-traffic', emoji: '🚦', description: 'Avoid congested areas and traffic jams' },
+                { type: 'long-drive', emoji: '🏞️', description: 'Enjoy a more scenic journey' }
+              ].map((option) => (
+                <TouchableOpacity
+                  key={option.type}
+                  style={[
+                    styles.enhancedOptionButton,
+                    selectedOptions.type === option.type && styles.enhancedSelectedOption,
+                  ]}
+                  onPress={() =>
+                    setSelectedOptions({
+                      type: option.type as any,
+                    })
+                  }
+                >
+                  <View style={styles.optionContentRow}>
+                    <Text style={styles.optionEmoji}>{option.emoji}</Text>
+                    <View style={styles.optionTextContainer}>
+                      <Text style={[
+                        styles.enhancedOptionText,
+                        selectedOptions.type === option.type && styles.enhancedSelectedOptionText
+                      ]}>
+                        {option.type}
+                      </Text>
+                      <Text style={[
+                        styles.optionDescription,
+                        selectedOptions.type === option.type && styles.selectedOptionDescription
+                      ]}>
+                        {option.description}
+                      </Text>
+                    </View>
+                    {selectedOptions.type === option.type && (
+                      <Ionicons name="checkmark-circle" size={24} color={COLORS.white} style={styles.selectedIcon} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
 
-              <TouchableOpacity
-                style={styles.findRouteButton}
-                onPress={findRoute}
-                disabled={loading}
-              >
-                <Text style={styles.findRouteButtonText}>
-                  {loading ? 'Finding Route...' : 'Find Route'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={styles.enhancedFindRouteButton}
+                  onPress={findRoute}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="navigate" size={20} color="white" style={styles.buttonIcon} />
+                      <Text style={styles.enhancedFindRouteButtonText}>Find Route</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowOptions(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.enhancedCancelButton}
+                  onPress={() => setShowOptions(false)}
+                >
+                  <Text style={styles.enhancedCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </View>
         </View>
@@ -1404,16 +1425,23 @@ export default function TabOneScreen() {
 
       <Modal visible={showAIDescription} transparent animationType="slide">
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Route Description</Text>
-            <ScrollView style={styles.descriptionScroll}>
+          <View style={styles.enhancedModalContent}>
+            <View style={styles.modalHeaderContainer}>
+              <View style={styles.modalIconContainer}>
+                <Text style={styles.modalHeaderEmoji}>🤖</Text>
+              </View>
+              <Text style={styles.enhancedModalTitle}>Route Description</Text>
+            </View>
+
+            <ScrollView style={styles.optionsScrollView}>
               <Text style={styles.descriptionText}>{aiRouteDescription}</Text>
             </ScrollView>
+
             <TouchableOpacity
-              style={styles.closeButton}
+              style={styles.enhancedFindRouteButton}
               onPress={() => setShowAIDescription(false)}
             >
-              <Text style={styles.closeButtonText}>Close</Text>
+              <Text style={styles.enhancedFindRouteButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1433,8 +1461,8 @@ export default function TabOneScreen() {
           <TouchableOpacity
             style={styles.tryAgainButton}
             onPress={() => {
-              setRouteError(false)
-              resetMapMarkers()
+              setRouteError(false);
+              resetMapMarkers();
             }}
           >
             <Text style={styles.tryAgainButtonText}>Try Another Route</Text>
@@ -1493,6 +1521,62 @@ export default function TabOneScreen() {
           </View>
         </View>
       </Modal>
+
+      {showResetMarkersModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.resetMarkersModal}>
+            <View style={styles.resetMarkersIconContainer}>
+              <Text style={styles.resetMarkersEmoji}>🧹 🗺️</Text>
+            </View>
+            <Text style={styles.resetMarkersTitle}>Clear Map Markers?</Text>
+            <Text style={styles.resetMarkersMessage}>
+              This will remove all markers from the map, but won't delete any saved routes.
+            </Text>
+            <View style={styles.resetMarkersButtons}>
+              <TouchableOpacity
+                style={styles.resetMarkersCancelButton}
+                onPress={() => setShowResetMarkersModal(false)}
+              >
+                <Text style={styles.resetMarkersCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.resetMarkersConfirmButton}
+                onPress={handleResetMapMarkers}
+              >
+                <Text style={styles.resetMarkersConfirmText}>Clear Markers</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {showResetRouteModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.resetRouteModal}>
+            <View style={styles.resetRouteIconContainer}>
+              <Text style={styles.resetRouteEmoji}>🗑️ 🛣️</Text>
+            </View>
+            <Text style={styles.resetRouteTitle}>Reset Route?</Text>
+            <Text style={styles.resetRouteMessage}>
+              This will completely remove your current route and delete any saved route data. This action cannot be undone.
+            </Text>
+            <View style={styles.resetRouteButtons}>
+              <TouchableOpacity
+                style={styles.resetRouteCancelButton}
+                onPress={() => setShowResetRouteModal(false)}
+              >
+                <Text style={{color: '#666', fontWeight: 'bold', fontSize: 16}}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.resetRouteConfirmButton}
+                onPress={handleResetRoute}
+              >
+                <Text style={{color: 'white', fontWeight: 'bold', fontSize: 16}}>Reset Route</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   )
 }
@@ -1743,180 +1827,151 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  modalContent: {
+  enhancedModalContent: {
     backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    width: '80%',
-    maxHeight: '80%',
+    borderRadius: 25,
+    paddingVertical: 20,
+    paddingHorizontal: 5,
+    width: '85%',
+    maxHeight: '75%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 15,
+    elevation: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  modalHeaderContainer: {
+    alignItems: 'center',
     marginBottom: 20,
-    textAlign: 'center',
+    paddingHorizontal: 20,
   },
-  optionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  optionButton: {
-    padding: 10,
-    marginVertical: 5,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
-  },
-  selectedOption: {
-    backgroundColor: '#2196F3',
-  },
-  optionText: {
-    textAlign: 'center',
-  },
-  findRouteButton: {
-    backgroundColor: '#2196F3',
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 20,
-  },
-  findRouteButtonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  cancelButton: {
-    backgroundColor: '#f0f0f0',
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  cancelButtonText: {
-    textAlign: 'center',
-  },
-  descriptionScroll: {
-    maxHeight: 300,
-  },
-  descriptionText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  closeButton: {
-    backgroundColor: '#2196F3',
-    padding: 12,
-    borderRadius: 5,
-    marginTop: 15,
-  },
-  closeButtonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  vehicleOptionsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 8,
-    color: COLORS.darkGreen,
-  },
-  vehicleOptions: {
-    flexDirection: 'row',
-    marginBottom: 12,
-  },
-  vehicleOption: {
-    width: 90,
-    height: 110,
-    marginRight: 8,
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: COLORS.paleGreen,
-    borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.3)',
-    alignItems: 'center',
+  modalIconContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: COLORS.lightestGreen,
     justifyContent: 'center',
-  },
-  selectedVehicleOption: {
+    alignItems: 'center',
+    marginBottom: 15,
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+    borderWidth: 1.5,
     borderColor: COLORS.leafGreen,
-    borderWidth: 2,
-    backgroundColor: 'rgba(34, 197, 94, 0.2)',
   },
-  vehicleEmoji: {
+  modalHeaderEmoji: {
+    fontSize: 32,
+  },
+  enhancedModalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+    textAlign: 'center',
+  },
+  optionsScrollView: {
+    paddingHorizontal: 15,
+  },
+  enhancedOptionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 5,
+    marginBottom: 10,
+    color: COLORS.soil,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  enhancedOptionButton: {
+    padding: 15,
+    marginVertical: 6,
+    backgroundColor: '#f7f7f7',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#eeeeee',
+  },
+  enhancedSelectedOption: {
+    backgroundColor: COLORS.leafGreen,
+    borderColor: COLORS.darkGreen,
+  },
+  optionContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  optionEmoji: {
     fontSize: 24,
-    marginBottom: 5,
+    marginRight: 15,
   },
-  vehicleName: {
-    fontSize: 14,
-    fontWeight: '500',
-    textTransform: 'capitalize',
-    textAlign: 'center',
-    marginBottom: 5,
+  optionTextContainer: {
+    flex: 1,
   },
-  vehicleScoreBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginTop: 4,
-  },
-  vehicleScoreText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  vehicleTagBadge: {
-    backgroundColor: '#3B82F6',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginTop: 4,
-  },
-  vehicleTagText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  earnedPointsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.paleGreen,
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: COLORS.leafGreen,
-  },
-  earnedPointsLabel: {
+  enhancedOptionText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.darkGreen,
+    color: '#444',
+    textTransform: 'capitalize',
   },
-  earnedPointsValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.leafGreen,
+  enhancedSelectedOptionText: {
+    color: 'white',
   },
-  savedVehicleOption: {
-    borderColor: COLORS.leafGreen,
-    borderWidth: 2,
-    backgroundColor: 'rgba(34, 197, 94, 0.3)',
-    opacity: 0.9,
+  optionDescription: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 3,
   },
-  savedIndicator: {
-    backgroundColor: COLORS.darkGreen,
-    padding: 10,
-    borderRadius: 8,
-    flex: 1,
-    marginLeft: 5,
-    alignItems: 'center',
+  selectedOptionDescription: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+  selectedIcon: {
+    marginLeft: 15,
+  },
+  buttonContainer: {
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  enhancedFindRouteButton: {
+    backgroundColor: COLORS.leafGreen,
+    paddingVertical: 16,
+    borderRadius: 50,
+    marginTop: 10,
+    marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
   },
-  savedIndicatorText: {
-    color: COLORS.white,
+  buttonIcon: {
+    marginRight: 10,
+  },
+  enhancedFindRouteButtonText: {
+    color: 'white',
+    textAlign: 'center',
     fontWeight: 'bold',
-    marginLeft: 8,
+    fontSize: 16,
+  },
+  enhancedCancelButton: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 14,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  enhancedCancelButtonText: {
+    textAlign: 'center',
+    color: '#666',
+    fontWeight: '600',
+    fontSize: 15,
   },
   errorCard: {
     position: 'absolute',
@@ -2073,5 +2128,319 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  resetMarkersModal: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: COLORS.leafGreen,
+  },
+  resetMarkersIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.lightestGreen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: COLORS.leafGreen,
+  },
+  resetMarkersEmoji: {
+    fontSize: 30,
+  },
+  resetMarkersTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  resetMarkersMessage: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  resetMarkersButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  resetMarkersCancelButton: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    flex: 1,
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  resetMarkersCancelText: {
+    color: '#666',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  resetMarkersConfirmButton: {
+    backgroundColor: COLORS.leafGreen,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    flex: 1.5,
+    marginLeft: 10,
+    alignItems: 'center',
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  resetMarkersConfirmText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  resetRouteModal: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+  },
+  resetRouteIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFF0F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+    borderWidth: 2,
+    borderColor: '#FF6B6B',
+  },
+  resetRouteEmoji: {
+    fontSize: 30,
+  },
+  resetRouteTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  resetRouteMessage: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  resetRouteButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  resetRouteCancelButton: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    flex: 1,
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  resetRouteCancelText: {
+    color: '#666',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  resetRouteConfirmButton: {
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    flex: 1.5,
+    marginLeft: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  resetRouteConfirmText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  vehicleOptionsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 8,
+    color: COLORS.darkGreen,
+  },
+  vehicleOptions: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  vehicleOption: {
+    width: 90,
+    height: 110,
+    marginRight: 8,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: COLORS.paleGreen,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedVehicleOption: {
+    borderColor: COLORS.leafGreen,
+    borderWidth: 2,
+    backgroundColor: 'rgba(34, 197, 94, 0.2)',
+  },
+  vehicleEmoji: {
+    fontSize: 24,
+    marginBottom: 5,
+  },
+  vehicleName: {
+    fontSize: 14,
+    fontWeight: '500',
+    textTransform: 'capitalize',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  vehicleScoreBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  vehicleScoreText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  vehicleTagBadge: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  vehicleTagText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  earnedPointsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.paleGreen,
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.leafGreen,
+  },
+  earnedPointsLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+  },
+  earnedPointsValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.leafGreen,
+  },
+  savedVehicleOption: {
+    borderColor: COLORS.leafGreen,
+    borderWidth: 2,
+    backgroundColor: 'rgba(34, 197, 94, 0.3)',
+    opacity: 0.9,
+  },
+  savedIndicator: {
+    backgroundColor: COLORS.darkGreen,
+    padding: 10,
+    borderRadius: 8,
+    flex: 1,
+    marginLeft: 5,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  savedIndicatorText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  descriptionScroll: {
+    maxHeight: 300,
+  },
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  closeButton: {
+    backgroundColor: '#2196F3',
+    padding: 12,
+    borderRadius: 5,
+    marginTop: 15,
+  },
+  closeButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  aiDescriptionText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#444',
+    textAlign: 'left',
+    padding: 10,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
   },
 })
