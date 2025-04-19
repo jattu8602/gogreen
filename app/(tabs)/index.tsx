@@ -1221,8 +1221,8 @@ export default function TabOneScreen() {
         <View style={styles.routeInfoCard}>
           <View style={styles.routeInfoHeader}>
             <Text style={styles.routeInfoTitle}>{routeInfo}</Text>
-            <TouchableOpacity 
-              style={styles.closeButton} 
+            <TouchableOpacity
+              style={styles.closeButton}
               onPress={() => {
                 setRouteDetails(null);
                 setRouteCoordinates([]);
@@ -2451,4 +2451,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-  },
+  }
+})
