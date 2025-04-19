@@ -168,7 +168,7 @@ export default function TravelPlannerScreen() {
       - Number of travelers: ${travellers}
       - Budget: ₹${budget}
       - Travel style: ${routeType}
-      
+
       Focus only on places and activities within ${destination}. Include:
       1. Daily itinerary with specific times
       2. Must-visit attractions within the city
@@ -257,6 +257,8 @@ export default function TravelPlannerScreen() {
 
   const renderFilters = () => (
     <View style={styles.filtersContainer}>
+      <ThemedText style={styles.tagline}>Plan Your Trip</ThemedText>
+
       <View style={styles.planningInputContainer}>
         <TextInput
           style={styles.planningInput}
@@ -265,20 +267,6 @@ export default function TravelPlannerScreen() {
           onChangeText={setDestination}
           placeholderTextColor={COLORS.soil}
         />
-        <TouchableOpacity
-          style={styles.planButton}
-          onPress={generateTravelPlan}
-          disabled={isGeneratingPlan}
-        >
-          {isGeneratingPlan ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
-          ) : (
-            <>
-              <Ionicons name="navigate" size={16} color={COLORS.white} />
-              <ThemedText style={styles.planButtonText}>Plan Trip</ThemedText>
-            </>
-          )}
-        </TouchableOpacity>
       </View>
 
       <View style={styles.filterRow}>
@@ -303,61 +291,32 @@ export default function TravelPlannerScreen() {
             placeholderTextColor={COLORS.soil}
           />
         </View>
-      </View>
 
-      <View style={styles.filterRow}>
-        <View style={{ width: '48%' }}>
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => {
-              setShowTravellersDropdown(!showTravellersDropdown);
-              setShowRouteTypeDropdown(false);
-            }}
-          >
-            <ThemedText style={styles.filterButtonText}>Travellers: {travellers}</ThemedText>
-            <Ionicons
-              name={showTravellersDropdown ? "chevron-up" : "chevron-down"}
-              size={16}
-              color={COLORS.darkGreen}
-            />
-          </TouchableOpacity>
-          {renderDropdown(
-            travellersOptions,
-            travellers,
-            setTravellers,
-            showTravellersDropdown,
-            setShowTravellersDropdown
-          )}
-        </View>
-
-        <View style={{ width: '48%' }}>
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => {
-              setShowRouteTypeDropdown(!showRouteTypeDropdown);
-              setShowTravellersDropdown(false);
-            }}
-          >
-            <ThemedText style={styles.filterButtonText}>Route: {routeType}</ThemedText>
-            <Ionicons
-              name={showRouteTypeDropdown ? "chevron-up" : "chevron-down"}
-              size={16}
-              color={COLORS.darkGreen}
-            />
-          </TouchableOpacity>
-          {renderDropdown(
-            routeTypeOptions,
-            routeType,
-            setRouteType,
-            showRouteTypeDropdown,
-            setShowRouteTypeDropdown
-          )}
+        <View style={styles.filterInputContainer}>
+          <TextInput
+            style={styles.filterInput}
+            placeholder="No. of travellers"
+            value={travellers}
+            onChangeText={setTravellers}
+            keyboardType="numeric"
+            placeholderTextColor={COLORS.soil}
+          />
         </View>
       </View>
 
-      <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
-        <Ionicons name="search" size={20} color={COLORS.white} />
-        <ThemedText style={styles.applyButtonText}>Apply</ThemedText>
+      <TouchableOpacity
+        style={styles.planButton}
+        onPress={generateTravelPlan}
+        disabled={isGeneratingPlan}
+      >
+        {isGeneratingPlan ? (
+          <ActivityIndicator size="small" color={COLORS.white} />
+        ) : (
+          <>
+            <Ionicons name="navigate" size={16} color={COLORS.white} />
+            <ThemedText style={styles.planButtonText}>Plan Trip</ThemedText>
+          </>
+        )}
       </TouchableOpacity>
     </View>
   )
@@ -398,7 +357,10 @@ export default function TravelPlannerScreen() {
                 {place.description}
               </ThemedText>
             </View>
-            <Image source={{ uri: place.imageUrl }} style={styles.placeImage} />
+            <Image
+              source={{ uri: place.imageUrl || 'https://via.placeholder.com/150' }}
+              style={styles.placeImage}
+            />
           </View>
         ))
       ) : (
@@ -600,45 +562,61 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
+  tagline: {
+    fontSize: 24,
+    color: COLORS.darkGreen,
+    fontWeight: '600',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
   filterRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: 20,
+    gap: 10,
   },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  filterInputContainer: {
+    flex: 1,
+  },
+  filterInput: {
+    backgroundColor: COLORS.white,
     borderWidth: 1,
     borderColor: COLORS.darkGreen,
-    backgroundColor: COLORS.white,
     borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    width: '48%',
+    padding: 10,
+    fontSize: 14,
+    color: COLORS.soil,
   },
-  filterButtonText: {
-    color: COLORS.darkGreen,
-    marginRight: 5,
-    fontWeight: '500',
+  planningInputContainer: {
+    marginBottom: 20,
   },
-  applyButton: {
+  planningInput: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.darkGreen,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: COLORS.soil,
+  },
+  planButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.leafGreen,
     borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     alignSelf: 'center',
-    width: 120,
     shadowColor: COLORS.darkGreen,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 2,
+    width: '60%',
+    marginTop: 10,
   },
-  applyButtonText: {
+  planButtonText: {
     color: COLORS.white,
     marginLeft: 5,
     fontWeight: '500',
@@ -667,12 +645,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 20,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: COLORS.lightestGreen,
-    padding: 12,
+    padding: 15,
     borderRadius: 10,
     borderLeftWidth: 4,
     borderLeftColor: COLORS.leafGreen,
+    gap: 15,
   },
   placeInfo: {
     flex: 1,
@@ -695,8 +674,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   placeImage: {
-    width: 70,
-    height: 70,
+    width: 100,
+    height: 100,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: COLORS.white,
@@ -868,51 +847,6 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: '500',
   },
-  planningInputContainer: {
-    marginBottom: 15,
-  },
-  planningInput: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.darkGreen,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
-    fontSize: 14,
-    color: COLORS.soil,
-  },
-  planningInputDisabled: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.darkGreen,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
-    fontSize: 14,
-    color: COLORS.soil,
-    opacity: 0.7,
-  },
-  planButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.leafGreen,
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    alignSelf: 'center',
-    shadowColor: COLORS.darkGreen,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
-    width: '60%',
-  },
-  planButtonText: {
-    color: COLORS.white,
-    marginLeft: 5,
-    fontWeight: '500',
-  },
   routeSummary: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -999,18 +933,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 8,
     fontWeight: '500',
-  },
-  filterInputContainer: {
-    width: '48%',
-  },
-  filterInput: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.darkGreen,
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 14,
-    color: COLORS.soil,
   },
   placeDescription: {
     color: COLORS.soil,
