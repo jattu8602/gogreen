@@ -93,7 +93,6 @@ export default function TravelPlannerScreen() {
   const [showTravellersDropdown, setShowTravellersDropdown] = useState(false)
   const [loading, setLoading] = useState(false)
   const [travelPlan, setTravelPlan] = useState<TravelPlan | null>(null)
-  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([])
   const insets = useSafeAreaInsets()
 
   // Function to handle trip planning
@@ -114,11 +113,6 @@ export default function TravelPlannerScreen() {
 
       if (result.travelPlan) {
         setTravelPlan(result.travelPlan)
-        // Also fetch nearby places
-        const nearbyResult = await findNearbyPlaces(destination)
-        if (nearbyResult.places) {
-          setNearbyPlaces(nearbyResult.places)
-        }
       }
     } catch (error) {
       console.error('Error planning trip:', error)
@@ -128,7 +122,7 @@ export default function TravelPlannerScreen() {
     }
   }
 
-    return (
+  return (
     <View style={styles.container}>
       <StatusBar style="light" />
 
@@ -151,7 +145,7 @@ export default function TravelPlannerScreen() {
           <TouchableOpacity style={styles.avatarButton}>
             <Text style={styles.avatarText}>A</Text>
           </TouchableOpacity>
-      </View>
+        </View>
       </View>
 
       {/* Content */}
@@ -168,14 +162,14 @@ export default function TravelPlannerScreen() {
               <Ionicons name="location-outline" size={20} color={COLORS.textLight} />
               <Text style={styles.label}>Where to?</Text>
             </View>
-        <TextInput
+            <TextInput
               style={styles.input}
               placeholder="Enter your destination"
-          value={destination}
-          onChangeText={setDestination}
+              value={destination}
+              onChangeText={setDestination}
               placeholderTextColor={COLORS.textLight}
             />
-      </View>
+          </View>
 
           {/* Duration and Budget */}
           <View style={styles.row}>
@@ -184,31 +178,31 @@ export default function TravelPlannerScreen() {
                 <Ionicons name="calendar-outline" size={20} color={COLORS.textLight} />
                 <Text style={styles.label}>Duration</Text>
               </View>
-          <TextInput
+              <TextInput
                 style={styles.input}
                 placeholder="Enter days"
-            value={duration}
-            onChangeText={setDuration}
-            keyboardType="numeric"
+                value={duration}
+                onChangeText={setDuration}
+                keyboardType="numeric"
                 placeholderTextColor={COLORS.textLight}
-          />
-        </View>
+              />
+            </View>
 
             <View style={styles.halfInput}>
               <View style={styles.labelRow}>
                 <Ionicons name="wallet-outline" size={20} color={COLORS.textLight} />
                 <Text style={styles.label}>Budget</Text>
               </View>
-          <TextInput
+              <TextInput
                 style={styles.input}
                 placeholder="Enter amount"
-            value={budget}
-            onChangeText={setBudget}
-            keyboardType="numeric"
+                value={budget}
+                onChangeText={setBudget}
+                keyboardType="numeric"
                 placeholderTextColor={COLORS.textLight}
-          />
-        </View>
-      </View>
+              />
+            </View>
+          </View>
 
           {/* Travellers */}
           <View style={styles.inputGroup}>
@@ -216,7 +210,7 @@ export default function TravelPlannerScreen() {
               <Ionicons name="people-outline" size={20} color={COLORS.textLight} />
               <Text style={styles.label}>Travellers</Text>
             </View>
-          <TouchableOpacity
+            <TouchableOpacity
               style={styles.input}
               onPress={() => setShowTravellersDropdown(!showTravellersDropdown)}
             >
@@ -226,8 +220,8 @@ export default function TravelPlannerScreen() {
               ]}>
                 {travellers ? `${travellers} Traveller${travellers === '1' ? '' : 's'}` : 'Select number of travellers'}
               </Text>
-          </TouchableOpacity>
-        </View>
+            </TouchableOpacity>
+          </View>
 
           {/* Plan Trip Button */}
           <TouchableOpacity
@@ -241,7 +235,7 @@ export default function TravelPlannerScreen() {
               <Text style={styles.planButtonText}>Plan Trip</Text>
             )}
           </TouchableOpacity>
-      </View>
+        </View>
 
         {/* Travel Plan Section */}
         {travelPlan && (
@@ -254,18 +248,18 @@ export default function TravelPlannerScreen() {
                   <Text style={styles.planDuration}>{travelPlan.duration}</Text>
                   <Text style={styles.planMetadataDot}>•</Text>
                   <Text style={styles.planTravelers}>{travelPlan.travelers}</Text>
-    </View>
+                </View>
               </View>
 
               <View style={styles.budgetContainer}>
                 <View style={styles.budgetInfo}>
                   <Text style={styles.budgetLabel}>Budget</Text>
                   <Text style={styles.budgetAmount}>{travelPlan.budget}</Text>
-              </View>
+                </View>
                 <View style={styles.budgetInfo}>
                   <Text style={styles.budgetLabel}>Transport</Text>
                   <Text style={styles.budgetAmount}>{travelPlan.transportationTotal}</Text>
-            </View>
+                </View>
                 <View style={styles.budgetInfo}>
                   <Text style={styles.budgetLabel}>Total Cost</Text>
                   <Text style={[
@@ -276,8 +270,8 @@ export default function TravelPlannerScreen() {
                   ]}>
                     {travelPlan.totalCost}
                   </Text>
-          </View>
-    </View>
+                </View>
+              </View>
 
               <View style={styles.itineraryContainer}>
                 <Text style={styles.itineraryTitle}>Daily Itinerary</Text>
@@ -286,12 +280,12 @@ export default function TravelPlannerScreen() {
                     <View style={styles.dayHeader}>
                       <Text style={styles.dayTitle}>Day {day.day}</Text>
                       <Text style={styles.dayTotal}>Total: {day.dailyTotal}</Text>
-                </View>
+                    </View>
                     {day.activities.map((activity, index) => (
                       <View key={index} style={styles.activityItem}>
                         <View style={styles.activityTimeContainer}>
                           <Text style={styles.activityTime}>{activity.time}</Text>
-                </View>
+                        </View>
                         <View style={styles.activityContent}>
                           <View style={styles.activityHeader}>
                             <Text style={styles.activityText}>{activity.activity}</Text>
@@ -310,9 +304,9 @@ export default function TravelPlannerScreen() {
                               <View style={styles.ecoTag}>
                                 <Ionicons name="leaf" size={12} color={COLORS.leafGreen} />
                                 <Text style={styles.ecoTagText}>Eco-friendly</Text>
-              </View>
-            )}
-          </View>
+                              </View>
+                            )}
+                          </View>
                           {activity.transportInfo && (
                             <View style={styles.transportInfo}>
                               <View style={styles.transportHeader}>
@@ -328,88 +322,45 @@ export default function TravelPlannerScreen() {
                                 <Text style={styles.transportCost}>{activity.transportInfo.cost}</Text>
                               </View>
                             </View>
-                  )}
-                </View>
-                </View>
+                          )}
+                        </View>
+                      </View>
                     ))}
-              </View>
-            ))}
-          </View>
-
-              <View style={styles.tipsContainer}>
-                <Text style={styles.tipsTitle}>Eco-Friendly Tips</Text>
-                {travelPlan.ecoFriendlyTips.map((tip, index) => (
-                  <View key={index} style={styles.tipItem}>
-                    <MaterialCommunityIcons name="leaf-circle-outline" size={20} color={COLORS.leafGreen} />
-                    <Text style={styles.tipText}>{tip}</Text>
-        </View>
+                  </View>
                 ))}
-      </View>
+              </View>
             </View>
           </View>
         )}
 
-        {/* Nearby Places Section - Only shown after travel plan is generated */}
-        {nearbyPlaces.length > 0 && (
-          <View style={styles.suggestedPlaces}>
-            <Text style={styles.sectionTitle}>Nearby Places</Text>
-            <View style={styles.placesList}>
-              {nearbyPlaces.map((place, index) => (
-                <View key={index} style={styles.placeCard}>
-                  <View style={[styles.placeIcon, {
-                    backgroundColor: place.ecoFriendly ?
-                      'rgba(104, 211, 145, 0.1)' : 'rgba(246, 173, 85, 0.1)'
-                  }]}>
-                    <Ionicons
-                      name={place.ecoFriendly ? "leaf" : "location"}
-                      size={24}
-                      color={place.ecoFriendly ? "#68D391" : "#F6AD55"}
-                    />
-              </View>
-                  <View style={styles.placeInfo}>
-                    <View style={styles.placeHeader}>
-                      <View style={styles.placeNameContainer}>
-                        <Text style={styles.placeName}>{place.name}</Text>
-                        <Text style={styles.placeDistance}>{place.distance}</Text>
-          </View>
-                      <Text style={styles.placeTime}>{place.time}</Text>
-        </View>
-                    <Text style={styles.placeDescription} numberOfLines={2}>{place.description}</Text>
-      </View>
-                </View>
+        {/* Travellers Dropdown Overlay */}
+        {showTravellersDropdown && (
+          <View style={styles.overlay}>
+            <View style={styles.dropdownCard}>
+              {['1', '2', '3', '4', '5+'].map((num) => (
+                <TouchableOpacity
+                  key={num}
+                  style={[
+                    styles.dropdownItem,
+                    travellers === num && styles.selectedDropdownItem
+                  ]}
+                  onPress={() => {
+                    setTravellers(num)
+                    setShowTravellersDropdown(false)
+                  }}
+                >
+                  <Text style={[
+                    styles.dropdownText,
+                    travellers === num && styles.selectedDropdownText
+                  ]}>
+                    {num} Traveller{num === '1' ? '' : 's'}
+                  </Text>
+                </TouchableOpacity>
               ))}
             </View>
           </View>
         )}
       </ScrollView>
-
-      {/* Travellers Dropdown Overlay */}
-      {showTravellersDropdown && (
-        <View style={styles.overlay}>
-          <View style={styles.dropdownCard}>
-            {['1', '2', '3', '4', '5+'].map((num) => (
-              <TouchableOpacity
-                key={num}
-                style={[
-                  styles.dropdownItem,
-                  travellers === num && styles.selectedDropdownItem
-                ]}
-                onPress={() => {
-                  setTravellers(num)
-                  setShowTravellersDropdown(false)
-                }}
-              >
-                <Text style={[
-                  styles.dropdownText,
-                  travellers === num && styles.selectedDropdownText
-                ]}>
-                  {num} Traveller{num === '1' ? '' : 's'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
     </View>
   )
 }

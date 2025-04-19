@@ -65,16 +65,6 @@ export type RoutePlan = {
   scenicSpots?: string[]
 }
 
-// Define nearby place type
-export type NearbyPlace = {
-  name: string
-  distance: string
-  time: string
-  description: string
-  imageUrl: string
-  ecoFriendly: boolean
-}
-
 // Function to generate a travel plan using Gemini
 export async function generateTravelPlan(
   city: string,
@@ -95,6 +85,8 @@ export async function generateTravelPlan(
       6. Budget-friendly accommodation options
       7. Affordable local food recommendations
       8. Eco-friendly tips specific to the destination
+      9. Include local public transport where available
+      10 plan budget according to the budget. person who is spending more recommend luxury and person who is spending less recommend budget places.
 
       Format the response as a JSON object with the following structure:
       {
@@ -329,77 +321,6 @@ function getApproximateCoordinates(location: string): { latitude: number, longit
   return { latitude, longitude };
 }
 
-// Function to find nearby famous places
-export async function findNearbyPlaces(
-  location: string,
-  radius: number = 50
-): Promise<{ text: string; places?: NearbyPlace[] }> {
-  try {
-    const prompt = `
-      Find famous places near ${location} within ${radius} km.
-      Include:
-      1. Name of the place
-      2. Distance from ${location}
-      3. Approximate time to reach
-      4. Brief description
-      5. Whether it's eco-friendly
-
-      Format the response as a JSON array with the following structure:
-      [
-        {
-          "name": "place name",
-          "distance": "X km",
-          "time": "X hours",
-          "description": "brief description",
-          "imageUrl": "leave blank, we'll add real images later",
-          "ecoFriendly": true/false
-        }
-      ]
-
-      Provide at least 3-5 famous places, focusing on historical sites, natural attractions, and cultural landmarks.
-    `
-
-    // Generate content using Gemini
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    const text = response.text()
-
-    // Extract the JSON part from the response
-    const jsonMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/)
-    if (jsonMatch) {
-      try {
-        const places = JSON.parse(jsonMatch[0]) as NearbyPlace[]
-
-        // Add placeholder image URLs (these would be replaced with real images in production)
-        const placeholderImages = [
-          'https://images.unsplash.com/photo-1558471461-3c04d505fb04',
-          'https://images.unsplash.com/photo-1519113127831-aeac99acc42e',
-          'https://images.unsplash.com/photo-1570168007204-dfb528c6958f',
-          'https://images.unsplash.com/photo-1577132922228-6103a9d62d3d',
-          'https://images.unsplash.com/photo-1564288208527-7891d5946c30',
-        ]
-
-        // Assign image URLs to places
-        places.forEach((place, index) => {
-          place.imageUrl = placeholderImages[index % placeholderImages.length]
-        })
-
-        return { text, places }
-      } catch (error) {
-        console.error('Error parsing nearby places JSON:', error)
-        return { text }
-      }
-    }
-
-    return { text }
-  } catch (error) {
-    console.error('Error finding nearby places:', error)
-    return {
-      text: `I'm sorry, I couldn't find nearby places for ${location} at the moment. Please try again later.`,
-    }
-  }
-}
-
 // Function to handle general travel planning questions
 export async function handleTravelQuestion(question: string): Promise<string> {
   try {
@@ -427,5 +348,4 @@ export default {
   generateTravelPlan,
   handleTravelQuestion,
   generateRoutePlan,
-  findNearbyPlaces,
 }
