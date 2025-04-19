@@ -10,6 +10,8 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Animated,
+  Easing,
 } from 'react-native'
 import { WebView } from 'react-native-webview'
 import * as Location from 'expo-location'
@@ -149,6 +151,9 @@ export default function TabOneScreen() {
   const [achievementPoints, setAchievementPoints] = useState(0)
   const [showResetMarkersModal, setShowResetMarkersModal] = useState(false)
   const [showResetRouteModal, setShowResetRouteModal] = useState(false)
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [hasNotifications, setHasNotifications] = useState(false);
+  const searchAnimation = useRef(new Animated.Value(0)).current;
 
   // Load saved route data from AsyncStorage on initial load
   useEffect(() => {
@@ -1133,47 +1138,87 @@ export default function TabOneScreen() {
     }
   }
 
+  // Add this function to handle search animation
+  const toggleSearch = () => {
+    setIsSearchExpanded(!isSearchExpanded);
+    Animated.timing(searchAnimation, {
+      toValue: isSearchExpanded ? 0 : 1,
+      duration: 300,
+      easing: Easing.bezier(0.4, 0, 0.2, 1),
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const collapseSearch = () => {
+    setIsSearchExpanded(false);
+    Animated.timing(searchAnimation, {
+      toValue: 0,
+      duration: 300,
+      easing: Easing.bezier(0.4, 0, 0.2, 1),
+      useNativeDriver: false,
+    }).start();
+  };
+
+  // Add this function to handle notifications
+  const handleNotificationPress = () => {
+    Alert.alert(
+      'Notifications',
+      'No new notifications',
+      [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search for a location..."
-          placeholderTextColor="#999"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmitEditing={searchLocation}
-        />
-        <TouchableOpacity style={styles.searchButton} onPress={searchLocation}>
-          <Text style={styles.searchButtonText}>Search</Text>
-        </TouchableOpacity>
-      </View>
-
-      {showSearchResults && (
-        <View style={styles.searchResultsContainer}>
-          <ScrollView style={styles.searchResultsList}>
-            {searchResults.map((result, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.searchResultItem}
-                onPress={() => selectSearchResult(result)}
-              >
-                <Text style={styles.searchResultName}>
-                  {result.poi?.name || result.address.freeformAddress}
-                </Text>
-                <Text style={styles.searchResultAddress}>
-                  {result.address.freeformAddress}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          <TouchableOpacity
-            style={styles.closeSearchButton}
-            onPress={() => setShowSearchResults(false)}
-          >
-            <Text style={styles.closeSearchButtonText}>Close</Text>
+      {/* Animated Search Container */}
+      <Animated.View
+        style={[
+          styles.searchContainer,
+          {
+            width: searchAnimation.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['15%', '90%']
+            }),
+            position: 'absolute',
+            top: 40,
+            left: 10,
+            zIndex: 1,
+          }
+        ]}
+      >
+        {isSearchExpanded ? (
+          <View style={styles.expandedSearch}>
+            <TouchableOpacity onPress={collapseSearch} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color={COLORS.darkGreen} />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for a location..."
+              placeholderTextColor="#999"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={searchLocation}
+              autoFocus
+            />
+          </View>
+        ) : (
+          <TouchableOpacity onPress={toggleSearch} style={styles.searchIcon}>
+            <Ionicons name="search" size={24} color={COLORS.darkGreen} />
           </TouchableOpacity>
-        </View>
+        )}
+      </Animated.View>
+
+      {/* Notification Icon - Only show when search is not expanded */}
+      {!isSearchExpanded && (
+        <TouchableOpacity
+          style={styles.notificationButton}
+          onPress={handleNotificationPress}
+        >
+          <View style={styles.notificationIconContainer}>
+            <Ionicons name="notifications" size={24} color={COLORS.bark} />
+            {hasNotifications && <View style={styles.notificationBadge} />}
+          </View>
+        </TouchableOpacity>
       )}
 
       <WebView
@@ -1603,31 +1648,73 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   searchContainer: {
+    backgroundColor: 'white',
+    borderRadius: 30,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+    zIndex: 2,
+  },
+  expandedSearch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  backButton: {
+    padding: 5,
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    color: COLORS.soil,
+  },
+  searchIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationButton: {
     position: 'absolute',
     top: 40,
-    left: 10,
     right: 10,
     zIndex: 1,
     backgroundColor: 'white',
     borderRadius: 30,
-    padding: 12,
-    flexDirection: 'row',
+    padding: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
     elevation: 8,
   },
-  searchInput: {
-    flex: 1,
-    height: 45,
+  notificationIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 193, 7, 0.1)', // Light yellow background
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 25,
-    paddingHorizontal: 15,
-    marginRight: 10,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
+    borderColor: COLORS.bark,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF4444',
+    borderWidth: 1,
+    borderColor: 'white',
   },
   searchButton: {
     backgroundColor: '#22C55E',
@@ -1744,19 +1831,6 @@ const styles = StyleSheet.create({
   },
   aiButtonText: {
     fontSize: 18,
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 10,
-    backgroundColor: '#2196F3',
-    padding: 10,
-    borderRadius: 5,
-    zIndex: 10,
-  },
-  backButtonText: {
     color: 'white',
     fontWeight: 'bold',
   },
