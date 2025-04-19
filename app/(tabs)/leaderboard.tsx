@@ -29,6 +29,7 @@ import { router } from 'expo-router'
 import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
 import { useFocusEffect } from '@react-navigation/native'
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 
 // Import Firebase services
 import {
@@ -524,7 +525,7 @@ export default function LeaderboardScreen() {
         <StatusBar style="auto" />
 
         <View style={styles.header}>
-          <View style={styles.titleContainer}>
+          <View style={[styles.titleContainer, { marginTop: 15 }]}>
             <ThemedText style={styles.headerTitle}>LeaderBoard</ThemedText>
             <View style={styles.headerRightContainer}>
               {isSignedIn && (
@@ -606,6 +607,36 @@ export default function LeaderboardScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Add Static Current User Rank Bar */}
+        {isSignedIn && userRank && (
+          <Animated.View
+            entering={FadeIn.duration(500)}
+            exiting={FadeOut.duration(500)}
+            style={styles.currentUserRankBar}
+          >
+            <View style={styles.rankBarContent}>
+              <View style={styles.rankInfo}>
+                <ThemedText style={styles.rankBarPosition}>#{userRank.rank}</ThemedText>
+                <View style={styles.rankBarImageContainer}>
+                  <Image
+                    source={{ uri: profileImage || userRank.profile_url }}
+                    style={styles.rankBarImage}
+                  />
+                </View>
+                <ThemedText style={styles.rankBarUsername}>
+                  {user?.username || user?.fullName || 'You'}
+                </ThemedText>
+              </View>
+              <View style={styles.rankBarScore}>
+                <ThemedText style={styles.rankBarScoreText}>
+                  {userRank.green_score}
+                </ThemedText>
+                <Ionicons name="leaf" size={16} color={COLORS.leafGreen} />
+              </View>
+            </View>
+          </Animated.View>
+        )}
 
         <View style={styles.leaderboardHeader}>
           <ThemedText style={styles.leaderboardTitle}>
@@ -740,7 +771,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 10,
     paddingBottom: 8,
     backgroundColor: COLORS.lightestGreen,
     borderBottomWidth: 1,
@@ -751,6 +782,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    paddingTop: 10,
   },
   headerTitle: {
     fontSize: 26,
@@ -923,15 +955,17 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   currentUserItem: {
-    backgroundColor: COLORS.paleGreen,
+    backgroundColor: COLORS.lightestGreen,
     borderWidth: 2,
     borderColor: COLORS.leafGreen,
     transform: [{ scale: 1.02 }],
     shadowColor: COLORS.darkGreen,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.leafGreen,
   },
   rankText: {
     fontSize: 18,
@@ -1056,11 +1090,19 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   currentUserText: {
-    color: COLORS.white,
+    color: COLORS.darkGreen,
     fontWeight: 'bold',
+    fontSize: 17,
   },
   currentUserScore: {
-    backgroundColor: COLORS.darkGreen,
+    backgroundColor: COLORS.leafGreen,
+    borderWidth: 1,
+    borderColor: COLORS.white,
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
   coinModalOverlay: {
     flex: 1,
@@ -1162,6 +1204,70 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  currentUserRankBar: {
+    backgroundColor: COLORS.white,
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderRadius: 20,
+    padding: 12,
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 2,
+    borderColor: COLORS.leafGreen,
+  },
+  rankBarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rankInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  rankBarPosition: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+    marginRight: 12,
+  },
+  rankBarImageContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: COLORS.leafGreen,
+  },
+  rankBarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  rankBarUsername: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.darkGreen,
+  },
+  rankBarScore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightestGreen,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: COLORS.leafGreen,
+  },
+  rankBarScoreText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+    marginRight: 4,
   },
 })
 
