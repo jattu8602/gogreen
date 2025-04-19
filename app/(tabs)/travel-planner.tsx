@@ -45,6 +45,7 @@ import { TOMTOM_API_KEY } from '../../constants/Config'
 import { useNavigation, useRouter } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
+import { BlurView } from 'expo-blur'
 
 // Define tree-themed colors to match the rest of the app
 const COLORS = {
@@ -94,6 +95,8 @@ export default function TravelPlannerScreen() {
   const [loading, setLoading] = useState(false)
   const [travelPlan, setTravelPlan] = useState<TravelPlan | null>(null)
   const insets = useSafeAreaInsets()
+  const [showSidebar, setShowSidebar] = useState(false)
+  const { user } = useUser()
 
   // Function to handle trip planning
   const handlePlanTrip = async () => {
@@ -122,6 +125,31 @@ export default function TravelPlannerScreen() {
     }
   }
 
+  // Function to handle sidebar navigation
+  const handleNavigation = (section: string) => {
+    // Close sidebar
+    setShowSidebar(false)
+
+    // Handle navigation based on section
+    switch (section) {
+      case 'profile':
+        // Navigate to profile or show profile modal
+        break
+      case 'merchandise':
+        // Navigate to merchandise section
+        break
+      case 'about':
+        // Show about modal
+        break
+      case 'contact':
+        // Show contact modal
+        break
+      case 'support':
+        // Show support modal
+        break
+    }
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -142,8 +170,13 @@ export default function TravelPlannerScreen() {
         />
         <View style={[styles.headerContent, { paddingTop: insets.top + 16 }]}>
           <Text style={styles.headerTitle}>Travel Planner</Text>
-          <TouchableOpacity style={styles.avatarButton}>
-            <Text style={styles.avatarText}>A</Text>
+          <TouchableOpacity
+            style={styles.avatarButton}
+            onPress={() => setShowSidebar(true)}
+          >
+            <Text style={styles.avatarText}>
+              {user?.firstName?.[0] || user?.username?.[0] || 'A'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -361,6 +394,139 @@ export default function TravelPlannerScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Sidebar Modal */}
+      <Modal
+        visible={showSidebar}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSidebar(false)}
+      >
+        <View style={styles.sidebarOverlay}>
+          <BlurView intensity={20} style={StyleSheet.absoluteFill} />
+          <View style={styles.sidebar}>
+            {/* Profile Section */}
+            <View style={styles.sidebarHeader}>
+              <View style={styles.profileSection}>
+                <View style={styles.largeAvatar}>
+                  {user?.imageUrl ? (
+                    <Image
+                      source={{ uri: user.imageUrl }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <Text style={styles.largeAvatarText}>
+                      {user?.firstName?.[0] || user?.username?.[0] || 'A'}
+                    </Text>
+                  )}
+                </View>
+                <Text style={styles.profileName}>
+                  {user?.fullName || user?.username || 'Guest User'}
+                </Text>
+                <Text style={styles.profileEmail}>
+                  {user?.emailAddresses[0]?.emailAddress || 'No email provided'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Menu Options */}
+            <ScrollView style={styles.menuOptions}>
+              {/* Your Profile */}
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleNavigation('profile')}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(34, 197, 94, 0.1)' }]}>
+                    <Ionicons name="person" size={24} color={COLORS.leafGreen} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Your Profile</Text>
+                    <Text style={styles.menuDescription}>View and edit your profile details</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+
+              {/* Merchandise */}
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleNavigation('merchandise')}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(246, 173, 85, 0.1)' }]}>
+                    <Ionicons name="shirt" size={24} color={COLORS.iconOrange} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Merchandise</Text>
+                    <Text style={styles.menuDescription}>Explore eco-friendly products</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+
+              {/* About Us */}
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleNavigation('about')}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(99, 179, 237, 0.1)' }]}>
+                    <Ionicons name="information-circle" size={24} color={COLORS.iconBlue} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>About Us</Text>
+                    <Text style={styles.menuDescription}>Learn about our mission</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+
+              {/* Contact Us */}
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleNavigation('contact')}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(104, 211, 145, 0.1)' }]}>
+                    <Ionicons name="mail" size={24} color={COLORS.iconGreen} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Contact Us</Text>
+                    <Text style={styles.menuDescription}>Get in touch with our team</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+
+              {/* Support */}
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleNavigation('support')}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(124, 58, 237, 0.1)' }]}>
+                    <Ionicons name="help-buoy" size={24} color={COLORS.purple} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Support</Text>
+                    <Text style={styles.menuDescription}>Help and documentation</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+            </ScrollView>
+
+            {/* Close Button */}
+            <TouchableOpacity
+              style={styles.closeSidebarButton}
+              onPress={() => setShowSidebar(false)}
+            >
+              <Text style={styles.closeSidebarText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -823,5 +989,113 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textLight,
     fontWeight: '500',
+  },
+  sidebarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  sidebar: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: '80%',
+    backgroundColor: COLORS.white,
+    paddingTop: 50,
+    borderTopLeftRadius: 25,
+    borderBottomLeftRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: -2, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  sidebarHeader: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  profileSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  largeAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.purple,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 3,
+    borderColor: COLORS.leafGreen,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+  },
+  largeAvatarText: {
+    fontSize: 32,
+    color: COLORS.white,
+    fontWeight: 'bold',
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 14,
+    color: COLORS.textLight,
+  },
+  menuOptions: {
+    flex: 1,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+    justifyContent: 'space-between',
+  },
+  menuItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  menuTextContainer: {
+    flex: 1,
+  },
+  menuTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  menuDescription: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  closeSidebarButton: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    alignItems: 'center',
+  },
+  closeSidebarText: {
+    fontSize: 16,
+    color: COLORS.textLight,
+    fontWeight: '600',
   },
 })
