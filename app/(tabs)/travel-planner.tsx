@@ -89,10 +89,16 @@ export default function TravelPlannerScreen() {
   const [destination, setDestination] = useState('')
   const [duration, setDuration] = useState('')
   const [budget, setBudget] = useState('')
-  const [travellers, setTravellers] = useState('1')
-  const [showTravellersDropdown, setShowTravellersDropdown] = useState(false)
+  const [travellers, setTravellers] = useState('')
   const [loading, setLoading] = useState(false)
   const [travelPlan, setTravelPlan] = useState<TravelPlan | null>(null)
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showMerchandiseModal, setShowMerchandiseModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const { user } = useUser();
 
   // Function to handle trip planning
   const handlePlanTrip = async () => {
@@ -121,11 +127,31 @@ export default function TravelPlannerScreen() {
     }
   }
 
-    return (
+  // Function to handle sidebar navigation
+  const handleNavigation = (section: string) => {
+    setShowSidebar(false);
+    switch (section) {
+      case 'profile':
+        setShowProfileModal(true);
+        break;
+      case 'merchandise':
+        setShowMerchandiseModal(true);
+        break;
+      case 'about':
+        setShowAboutModal(true);
+        break;
+      case 'contact':
+        setShowContactModal(true);
+        break;
+      case 'support':
+        setShowSupportModal(true);
+        break;
+    }
+  };
+
+  return (
     <View style={styles.container}>
       <StatusBar style="light" />
-
-      {/* Background Gradient */}
       <LinearGradient
         colors={['#E0F2F7', '#B0E2FF']}
         style={StyleSheet.absoluteFill}
@@ -133,7 +159,6 @@ export default function TravelPlannerScreen() {
         end={{ x: 0, y: 1 }}
       />
 
-      {/* Header */}
       <View style={styles.header}>
         <Image
           source={require('../../assets/images/trip-planner.png')}
@@ -142,23 +167,26 @@ export default function TravelPlannerScreen() {
         />
         <View style={styles.headerContent}>
           <View style={styles.headerTop}>
-            <TouchableOpacity style={styles.avatarButton}>
-              <Text style={styles.avatarText}>A</Text>
-          </TouchableOpacity>
-      </View>
+            <TouchableOpacity
+              style={styles.avatarButton}
+              onPress={() => setShowSidebar(true)}
+            >
+              <Text style={styles.avatarText}>
+                {user?.firstName?.[0] || user?.username?.[0] || 'A'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.titleContainer}>
             <Text style={styles.headerTitle}>Travel Planner</Text>
           </View>
         </View>
       </View>
 
-      {/* Content */}
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Input Card */}
         <View style={[styles.card, styles.planCard]}>
           {/* Where to? */}
           <View style={styles.inputGroup}>
@@ -166,14 +194,14 @@ export default function TravelPlannerScreen() {
               <Ionicons name="location-outline" size={20} color={COLORS.textLight} />
               <Text style={styles.label}>Where to?</Text>
             </View>
-        <TextInput
+            <TextInput
               style={styles.input}
               placeholder="Enter your destination"
-          value={destination}
-          onChangeText={setDestination}
+              value={destination}
+              onChangeText={setDestination}
               placeholderTextColor={COLORS.textLight}
             />
-      </View>
+          </View>
 
           {/* Duration and Budget */}
           <View style={styles.row}>
@@ -182,50 +210,47 @@ export default function TravelPlannerScreen() {
                 <Ionicons name="calendar-outline" size={20} color={COLORS.textLight} />
                 <Text style={styles.label}>Duration</Text>
               </View>
-          <TextInput
+              <TextInput
                 style={styles.input}
                 placeholder="Enter days"
-            value={duration}
-            onChangeText={setDuration}
-            keyboardType="numeric"
+                value={duration}
+                onChangeText={setDuration}
+                keyboardType="numeric"
                 placeholderTextColor={COLORS.textLight}
-          />
-        </View>
+              />
+            </View>
 
             <View style={styles.halfInput}>
               <View style={styles.labelRow}>
                 <Ionicons name="wallet-outline" size={20} color={COLORS.textLight} />
                 <Text style={styles.label}>Budget</Text>
               </View>
-          <TextInput
+              <TextInput
                 style={styles.input}
                 placeholder="Enter amount"
-            value={budget}
-            onChangeText={setBudget}
-            keyboardType="numeric"
+                value={budget}
+                onChangeText={setBudget}
+                keyboardType="numeric"
                 placeholderTextColor={COLORS.textLight}
-          />
-        </View>
-      </View>
+              />
+            </View>
+          </View>
 
-          {/* Travellers */}
+          {/* Number of Travellers */}
           <View style={styles.inputGroup}>
             <View style={styles.labelRow}>
               <Ionicons name="people-outline" size={20} color={COLORS.textLight} />
-              <Text style={styles.label}>Travellers</Text>
+              <Text style={styles.label}>Number of Travellers</Text>
             </View>
-          <TouchableOpacity
+            <TextInput
               style={styles.input}
-              onPress={() => setShowTravellersDropdown(!showTravellersDropdown)}
-            >
-              <Text style={[
-                styles.inputText,
-                !travellers && styles.placeholderText
-              ]}>
-                {travellers ? `${travellers} Traveller${travellers === '1' ? '' : 's'}` : 'Select number of travellers'}
-              </Text>
-          </TouchableOpacity>
-        </View>
+              placeholder="Enter number of travellers"
+              value={travellers}
+              onChangeText={setTravellers}
+              keyboardType="numeric"
+              placeholderTextColor={COLORS.textLight}
+            />
+          </View>
 
           {/* Plan Trip Button */}
           <TouchableOpacity
@@ -239,7 +264,7 @@ export default function TravelPlannerScreen() {
               <Text style={styles.planButtonText}>Plan Trip</Text>
             )}
           </TouchableOpacity>
-      </View>
+        </View>
 
         {/* Travel Plan Section */}
         {travelPlan && (
@@ -252,18 +277,18 @@ export default function TravelPlannerScreen() {
                   <Text style={styles.planDuration}>{travelPlan.duration}</Text>
                   <Text style={styles.planMetadataDot}>•</Text>
                   <Text style={styles.planTravelers}>{travelPlan.travelers}</Text>
-    </View>
+                </View>
               </View>
 
               <View style={styles.budgetContainer}>
                 <View style={styles.budgetInfo}>
                   <Text style={styles.budgetLabel}>Budget</Text>
                   <Text style={styles.budgetAmount}>{travelPlan.budget}</Text>
-              </View>
+                </View>
                 <View style={styles.budgetInfo}>
                   <Text style={styles.budgetLabel}>Transport</Text>
                   <Text style={styles.budgetAmount}>{travelPlan.transportationTotal}</Text>
-            </View>
+                </View>
                 <View style={styles.budgetInfo}>
                   <Text style={styles.budgetLabel}>Total Cost</Text>
                   <Text style={[
@@ -274,8 +299,8 @@ export default function TravelPlannerScreen() {
                   ]}>
                     {travelPlan.totalCost}
                   </Text>
-          </View>
-    </View>
+                </View>
+              </View>
 
               <View style={styles.itineraryContainer}>
                 <Text style={styles.itineraryTitle}>Daily Itinerary</Text>
@@ -284,12 +309,12 @@ export default function TravelPlannerScreen() {
                     <View style={styles.dayHeader}>
                       <Text style={styles.dayTitle}>Day {day.day}</Text>
                       <Text style={styles.dayTotal}>Total: {day.dailyTotal}</Text>
-                </View>
+                    </View>
                     {day.activities.map((activity, index) => (
                       <View key={index} style={styles.activityItem}>
                         <View style={styles.activityTimeContainer}>
                           <Text style={styles.activityTime}>{activity.time}</Text>
-                </View>
+                        </View>
                         <View style={styles.activityContent}>
                           <View style={styles.activityHeader}>
                             <Text style={styles.activityText}>{activity.activity}</Text>
@@ -308,9 +333,9 @@ export default function TravelPlannerScreen() {
                               <View style={styles.ecoTag}>
                                 <Ionicons name="leaf" size={12} color={COLORS.leafGreen} />
                                 <Text style={styles.ecoTagText}>Eco-friendly</Text>
-              </View>
-            )}
-          </View>
+                              </View>
+                            )}
+                          </View>
                           {activity.transportInfo && (
                             <View style={styles.transportInfo}>
                               <View style={styles.transportHeader}>
@@ -326,60 +351,395 @@ export default function TravelPlannerScreen() {
                                 <Text style={styles.transportCost}>{activity.transportInfo.cost}</Text>
                               </View>
                             </View>
-                  )}
-                </View>
-                </View>
+                          )}
+                        </View>
+                      </View>
                     ))}
-              </View>
-            ))}
-          </View>
-
-              <View style={styles.tipsContainer}>
-                <Text style={styles.tipsTitle}>Eco-Friendly Tips</Text>
-                {travelPlan.ecoFriendlyTips.map((tip, index) => (
-                  <View key={index} style={styles.tipItem}>
-                    <MaterialCommunityIcons name="leaf-circle-outline" size={20} color={COLORS.leafGreen} />
-                    <Text style={styles.tipText}>{tip}</Text>
-        </View>
+                  </View>
                 ))}
-      </View>
+              </View>
+            </View>
+
+            <View style={styles.tipsContainer}>
+              <Text style={styles.tipsTitle}>Eco-Friendly Tips</Text>
+              {travelPlan.ecoFriendlyTips.map((tip, index) => (
+                <View key={index} style={styles.tipItem}>
+                  <MaterialCommunityIcons name="leaf-circle-outline" size={20} color={COLORS.leafGreen} />
+                  <Text style={styles.tipText}>{tip}</Text>
+                </View>
+              ))}
             </View>
           </View>
         )}
       </ScrollView>
 
-      {/* Travellers Dropdown Overlay */}
-      {showTravellersDropdown && (
-        <View style={styles.overlay}>
-          <TouchableOpacity
-            style={StyleSheet.absoluteFill}
-            onPress={() => setShowTravellersDropdown(false)}
-          />
-          <View style={[styles.card, styles.dropdownCard]}>
-            {['1', '2', '3', '4', '5+'].map((num) => (
-              <TouchableOpacity
-                key={num}
-                style={[
-                  styles.dropdownItem,
-                  travellers === num && styles.selectedDropdownItem
-                ]}
-                onPress={() => {
-                  setTravellers(num)
-                  setShowTravellersDropdown(false)
-                }}
-              >
-                <Text style={[
-                  styles.dropdownText,
-                  travellers === num && styles.selectedDropdownText
-                ]}>
-                  {num} Traveller{num === '1' ? '' : 's'}
+      {/* Sidebar Modal */}
+      <Modal
+        visible={showSidebar}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSidebar(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.sidebar}>
+            {/* Profile Section */}
+            <View style={styles.sidebarHeader}>
+              <View style={styles.profileSection}>
+                <View style={styles.largeAvatar}>
+                  {user?.imageUrl ? (
+                    <Image source={{ uri: user.imageUrl }} style={styles.avatarImage} />
+                  ) : (
+                    <Text style={styles.largeAvatarText}>
+                      {user?.firstName?.[0] || user?.username?.[0] || 'A'}
+                    </Text>
+                  )}
+                </View>
+                <Text style={styles.profileName}>
+                  {user?.fullName || user?.username || 'Guest User'}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                <Text style={styles.profileEmail}>
+                  {user?.emailAddresses[0]?.emailAddress || 'No email provided'}
+                </Text>
               </View>
-            )}
+            </View>
+
+            {/* Menu Options */}
+            <ScrollView style={styles.menuOptions}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleNavigation('profile')}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(34, 197, 94, 0.1)' }]}>
+                    <Ionicons name="person" size={24} color={COLORS.leafGreen} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Your Profile</Text>
+                    <Text style={styles.menuDescription}>View and edit your profile details</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleNavigation('merchandise')}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(246, 173, 85, 0.1)' }]}>
+                    <Ionicons name="shirt" size={24} color={COLORS.iconOrange} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Merchandise</Text>
+                    <Text style={styles.menuDescription}>Explore eco-friendly products</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleNavigation('about')}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(99, 179, 237, 0.1)' }]}>
+                    <Ionicons name="information-circle" size={24} color={COLORS.iconBlue} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>About Us</Text>
+                    <Text style={styles.menuDescription}>Learn about our mission</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleNavigation('contact')}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(104, 211, 145, 0.1)' }]}>
+                    <Ionicons name="mail" size={24} color={COLORS.iconGreen} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Contact Us</Text>
+                    <Text style={styles.menuDescription}>Get in touch with our team</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleNavigation('support')}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[styles.menuIcon, { backgroundColor: 'rgba(124, 58, 237, 0.1)' }]}>
+                    <Ionicons name="help-buoy" size={24} color={COLORS.purple} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Text style={styles.menuTitle}>Support</Text>
+                    <Text style={styles.menuDescription}>Help and documentation</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.closeSidebarButton}
+              onPress={() => setShowSidebar(false)}
+            >
+              <Text style={styles.closeSidebarText}>Close</Text>
+            </TouchableOpacity>
           </View>
+        </View>
+      </Modal>
+
+      {/* Profile Modal */}
+      <Modal
+        visible={showProfileModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowProfileModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Your Profile</Text>
+              <TouchableOpacity onPress={() => setShowProfileModal(false)}>
+                <Ionicons name="close" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.profileStats}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>150</Text>
+                  <Text style={styles.statLabel}>Green Points</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>12</Text>
+                  <Text style={styles.statLabel}>Trips Planned</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>45kg</Text>
+                  <Text style={styles.statLabel}>CO₂ Saved</Text>
+                </View>
+              </View>
+              <View style={styles.profileActions}>
+                <TouchableOpacity style={styles.profileActionButton}>
+                  <Ionicons name="create-outline" size={20} color={COLORS.leafGreen} />
+                  <Text style={styles.actionButtonText}>Edit Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.profileActionButton}>
+                  <Ionicons name="settings-outline" size={20} color={COLORS.leafGreen} />
+                  <Text style={styles.actionButtonText}>Settings</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Merchandise Modal */}
+      <Modal
+        visible={showMerchandiseModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMerchandiseModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Eco-Friendly Merchandise</Text>
+              <TouchableOpacity onPress={() => setShowMerchandiseModal(false)}>
+                <Ionicons name="close" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.merchandiseGrid}>
+                {[
+                  { name: 'Bamboo Water Bottle', price: '$24.99', eco: 'Saves 300 plastic bottles/year' },
+                  { name: 'Organic Cotton Tote', price: '$19.99', eco: 'Replaces 500 plastic bags' },
+                  { name: 'Solar Power Bank', price: '$39.99', eco: 'Clean energy charging' },
+                  { name: 'Recycled Travel Journal', price: '$14.99', eco: '100% recycled paper' }
+                ].map((item, index) => (
+                  <View key={index} style={styles.merchandiseItem}>
+                    <View style={styles.merchandiseImagePlaceholder}>
+                      <Ionicons name="leaf" size={32} color={COLORS.leafGreen} />
+                    </View>
+                    <Text style={styles.merchandiseName}>{item.name}</Text>
+                    <Text style={styles.merchandisePrice}>{item.price}</Text>
+                    <Text style={styles.merchandiseEco}>{item.eco}</Text>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* About Modal */}
+      <Modal
+        visible={showAboutModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAboutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>About GoGreen</Text>
+              <TouchableOpacity onPress={() => setShowAboutModal(false)}>
+                <Ionicons name="close" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.aboutSection}>
+                <Text style={styles.aboutTitle}>Our Mission</Text>
+                <Text style={styles.aboutText}>
+                  GoGreen is dedicated to making travel more sustainable and environmentally conscious.
+                  We believe that exploring our beautiful planet shouldn't come at its expense.
+                </Text>
+
+                <Text style={styles.aboutTitle}>What We Do</Text>
+                <Text style={styles.aboutText}>
+                  • Help travelers plan eco-friendly trips{'\n'}
+                  • Calculate and minimize carbon footprints{'\n'}
+                  • Promote sustainable transportation options{'\n'}
+                  • Connect users with green initiatives
+                </Text>
+
+                <Text style={styles.aboutTitle}>Impact</Text>
+                <View style={styles.impactStats}>
+                  <View style={styles.impactItem}>
+                    <Text style={styles.impactValue}>50K+</Text>
+                    <Text style={styles.impactLabel}>Green Trips</Text>
+                  </View>
+                  <View style={styles.impactItem}>
+                    <Text style={styles.impactValue}>100T</Text>
+                    <Text style={styles.impactLabel}>CO₂ Saved</Text>
+                  </View>
+                  <View style={styles.impactItem}>
+                    <Text style={styles.impactValue}>20K+</Text>
+                    <Text style={styles.impactLabel}>Users</Text>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Contact Modal */}
+      <Modal
+        visible={showContactModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowContactModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Contact Us</Text>
+              <TouchableOpacity onPress={() => setShowContactModal(false)}>
+                <Ionicons name="close" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.contactSection}>
+                <View style={styles.contactMethod}>
+                  <Ionicons name="mail" size={24} color={COLORS.leafGreen} />
+                  <View style={styles.contactInfo}>
+                    <Text style={styles.contactLabel}>Email</Text>
+                    <Text style={styles.contactValue}>support@gogreen.eco</Text>
+                  </View>
+                </View>
+
+                <View style={styles.contactMethod}>
+                  <Ionicons name="call" size={24} color={COLORS.leafGreen} />
+                  <View style={styles.contactInfo}>
+                    <Text style={styles.contactLabel}>Phone</Text>
+                    <Text style={styles.contactValue}>+1 (555) 123-4567</Text>
+                  </View>
+                </View>
+
+                <View style={styles.contactMethod}>
+                  <Ionicons name="location" size={24} color={COLORS.leafGreen} />
+                  <View style={styles.contactInfo}>
+                    <Text style={styles.contactLabel}>Address</Text>
+                    <Text style={styles.contactValue}>123 Green Street{'\n'}Eco City, EC 12345</Text>
+                  </View>
+                </View>
+
+                <View style={styles.socialLinks}>
+                  <Text style={styles.socialTitle}>Follow Us</Text>
+                  <View style={styles.socialButtons}>
+                    <TouchableOpacity style={styles.socialButton}>
+                      <Ionicons name="logo-twitter" size={24} color={COLORS.leafGreen} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.socialButton}>
+                      <Ionicons name="logo-instagram" size={24} color={COLORS.leafGreen} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.socialButton}>
+                      <Ionicons name="logo-facebook" size={24} color={COLORS.leafGreen} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Support Modal */}
+      <Modal
+        visible={showSupportModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSupportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Support</Text>
+              <TouchableOpacity onPress={() => setShowSupportModal(false)}>
+                <Ionicons name="close" size={24} color={COLORS.textLight} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.supportSection}>
+                <Text style={styles.supportTitle}>Frequently Asked Questions</Text>
+                {[
+                  {
+                    question: 'How do I plan an eco-friendly trip?',
+                    answer: 'Use our travel planner to input your destination and preferences. We\'ll suggest sustainable transportation options and environmentally conscious activities.'
+                  },
+                  {
+                    question: 'How are green points calculated?',
+                    answer: 'Green points are awarded based on your eco-friendly choices, such as using public transport, choosing sustainable accommodations, and participating in environmental activities.'
+                  },
+                  {
+                    question: 'Can I offset my travel emissions?',
+                    answer: 'Yes! We partner with verified carbon offset programs. You can calculate your trip\'s carbon footprint and choose offset projects to support.'
+                  }
+                ].map((faq, index) => (
+                  <View key={index} style={styles.faqItem}>
+                    <Text style={styles.faqQuestion}>{faq.question}</Text>
+                    <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                  </View>
+                ))}
+
+                <TouchableOpacity style={styles.supportButton}>
+                  <Ionicons name="chatbubbles-outline" size={20} color={COLORS.white} />
+                  <Text style={styles.supportButtonText}>Start Live Chat</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
   )
 }
 
@@ -612,35 +972,6 @@ const styles = StyleSheet.create({
     color: COLORS.textLight,
     lineHeight: 20,
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  dropdownCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    padding: 8,
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
-    borderWidth: 0,
-  },
-  dropdownItem: {
-    padding: 16,
-    borderRadius: 8,
-  },
-  selectedDropdownItem: {
-    backgroundColor: 'rgba(124, 58, 237, 0.1)',
-  },
-  dropdownText: {
-    fontSize: 16,
-    color: COLORS.text,
-  },
-  selectedDropdownText: {
-    color: COLORS.purple,
-    fontWeight: '600',
-  },
   planButton: {
     backgroundColor: COLORS.primary,
     borderRadius: 12,
@@ -860,5 +1191,324 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textLight,
     fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    width: '90%',
+    maxHeight: '80%',
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+  },
+  modalBody: {
+    flex: 1,
+  },
+  sidebar: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: '80%',
+    backgroundColor: COLORS.white,
+    paddingTop: 50,
+    borderTopLeftRadius: 25,
+    borderBottomLeftRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: -2, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  sidebarHeader: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  profileSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  largeAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.purple,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 3,
+    borderColor: COLORS.leafGreen,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+  },
+  largeAvatarText: {
+    fontSize: 32,
+    color: COLORS.white,
+    fontWeight: 'bold',
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 14,
+    color: COLORS.textLight,
+  },
+  menuOptions: {
+    flex: 1,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  menuItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  menuTextContainer: {
+    flex: 1,
+  },
+  menuTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  menuDescription: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  closeSidebarButton: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    alignItems: 'center',
+  },
+  closeSidebarText: {
+    fontSize: 16,
+    color: COLORS.textLight,
+    fontWeight: '600',
+  },
+  // Profile Modal Styles
+  profileStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  profileActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  profileActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    padding: 12,
+    borderRadius: 12,
+  },
+  actionButtonText: {
+    marginLeft: 8,
+    color: COLORS.leafGreen,
+    fontWeight: '600',
+  },
+  // Merchandise Modal Styles
+  merchandiseGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  merchandiseItem: {
+    width: '48%',
+    backgroundColor: COLORS.lightestGreen,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  merchandiseImagePlaceholder: {
+    width: 80,
+    height: 80,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  merchandiseName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  merchandisePrice: {
+    fontSize: 16,
+    color: COLORS.leafGreen,
+    fontWeight: 'bold',
+  },
+  merchandiseEco: {
+    fontSize: 10,
+    color: COLORS.textLight,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  // About Modal Styles
+  aboutSection: {
+    padding: 16,
+  },
+  aboutTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  aboutText: {
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 22,
+  },
+  impactStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 16,
+  },
+  impactItem: {
+    alignItems: 'center',
+  },
+  impactValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.leafGreen,
+  },
+  impactLabel: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  // Contact Modal Styles
+  contactSection: {
+    padding: 16,
+  },
+  contactMethod: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  contactInfo: {
+    marginLeft: 12,
+  },
+  contactLabel: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  contactValue: {
+    fontSize: 16,
+    color: COLORS.text,
+    fontWeight: '500',
+  },
+  socialLinks: {
+    marginTop: 20,
+  },
+  socialTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.darkGreen,
+    marginBottom: 12,
+  },
+  socialButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  socialButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Support Modal Styles
+  supportSection: {
+    padding: 16,
+  },
+  supportTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+    marginBottom: 16,
+  },
+  faqItem: {
+    marginBottom: 16,
+  },
+  faqQuestion: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  faqAnswer: {
+    fontSize: 14,
+    color: COLORS.textLight,
+    lineHeight: 20,
+  },
+  supportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.leafGreen,
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 20,
+  },
+  supportButtonText: {
+    color: COLORS.white,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 })
