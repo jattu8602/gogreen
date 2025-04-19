@@ -867,13 +867,6 @@ export default function TabOneScreen() {
       isElectric: true,
       isCNG: false,
     })
-    vehicles.push({
-      vehicle: 'taxi',
-      greenScore: 10,
-      co2Emission: `${(distance * 0.15).toFixed(2)} kg`,
-      isElectric: false,
-      isCNG: false,
-    })
 
     // For medium and long distances
     if (distance >= 3) {
@@ -1226,7 +1219,19 @@ export default function TabOneScreen() {
 
       {routeDetails && routeDetails.recommendedVehicles && (
         <View style={styles.routeInfoCard}>
-          <Text style={styles.routeInfoTitle}>{routeInfo}</Text>
+          <View style={styles.routeInfoHeader}>
+            <Text style={styles.routeInfoTitle}>{routeInfo}</Text>
+            <TouchableOpacity 
+              style={styles.closeButton} 
+              onPress={() => {
+                setRouteDetails(null);
+                setRouteCoordinates([]);
+                webViewRef.current?.injectJavaScript('clearRoute(); true;');
+              }}
+            >
+              <Ionicons name="close" size={20} color={COLORS.soil} />
+            </TouchableOpacity>
+          </View>
           <Text style={styles.routeInfoDetail}>
             Distance: {routeDetails.distance}
           </Text>
@@ -1768,6 +1773,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  routeInfoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   routeInfoTitle: {
     fontSize: 16,
@@ -2413,15 +2424,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   closeButton: {
-    backgroundColor: '#2196F3',
-    padding: 12,
-    borderRadius: 5,
-    marginTop: 15,
-  },
-  closeButtonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontWeight: 'bold',
+    padding: 5,
+    borderRadius: 15,
+    backgroundColor: '#f0f0f0',
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   aiDescriptionText: {
     fontSize: 15,
@@ -2443,4 +2452,3 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
-})

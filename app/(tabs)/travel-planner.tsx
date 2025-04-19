@@ -73,94 +73,30 @@ export default function TravelPlannerScreen() {
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
-  const [duration, setDuration] = useState('Any')
+  const [duration, setDuration] = useState('')
   const [travellers, setTravellers] = useState('1')
-  const [budget, setBudget] = useState('Medium')
+  const [budget, setBudget] = useState('')
   const [routeType, setRouteType] = useState('Eco-friendly')
   const [userName, setUserName] = useState('Jatin')
   const [userLocation, setUserLocation] = useState('Bhopal')
   const [showMapModal, setShowMapModal] = useState(false)
   const [profileImage, setProfileImage] = useState<string | null>(null)
-  const [showDurationDropdown, setShowDurationDropdown] = useState(false)
   const [showTravellersDropdown, setShowTravellersDropdown] = useState(false)
-  const [showBudgetDropdown, setShowBudgetDropdown] = useState(false)
   const [showRouteTypeDropdown, setShowRouteTypeDropdown] = useState(false)
   const { user, isSignedIn } = useUser()
   const insets = useSafeAreaInsets()
   const router = useRouter()
 
-  // Add state to track if map route data exists
-  const [hasMapRouteData, setHasMapRouteData] = useState(false)
-  const [mapRouteData, setMapRouteData] = useState<any>(null)
-
-  // Add new state variables for route planning
-  const [planningLocation, setPlanningLocation] = useState('')
+  // Remove map route data states
   const [destination, setDestination] = useState('')
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false)
   const [planStops, setPlanStops] = useState<any[]>([])
-  const [mapCoordinates, setMapCoordinates] = useState<{startLat: number, startLng: number, endLat: number, endLng: number} | null>(null)
-
-  // Load saved route data from AsyncStorage on component mount
-  useEffect(() => {
-    const loadSavedRouteData = async () => {
-      try {
-        const savedRouteDataJson = await AsyncStorage.getItem(SAVED_ROUTE_DATA_KEY)
-
-        if (savedRouteDataJson) {
-          const savedRouteData = JSON.parse(savedRouteDataJson)
-          setHasMapRouteData(true)
-          setMapRouteData(savedRouteData)
-
-          // Convert coordinates to address names (simplified version with placeholder text)
-          if (savedRouteData.startLocation) {
-            const startText = `${savedRouteData.startLocation.latitude.toFixed(4)}, ${savedRouteData.startLocation.longitude.toFixed(4)}`
-            setPlanningLocation(startText)
-          }
-
-          if (savedRouteData.endLocation) {
-            const endText = `${savedRouteData.endLocation.latitude.toFixed(4)}, ${savedRouteData.endLocation.longitude.toFixed(4)}`
-            setDestination(endText)
-          }
-
-          // Set map coordinates for viewing the route
-          if (savedRouteData.startLocation && savedRouteData.endLocation) {
-            setMapCoordinates({
-              startLat: savedRouteData.startLocation.latitude,
-              startLng: savedRouteData.startLocation.longitude,
-              endLat: savedRouteData.endLocation.latitude,
-              endLng: savedRouteData.endLocation.longitude
-            })
-          }
-
-          // Set route type from saved data if available
-          if (savedRouteData.selectedOptions && savedRouteData.selectedOptions.type) {
-            // Map the route type from index.tsx to our format
-            const mapRouteType = (type) => {
-              switch (type) {
-                case 'fastest': return 'Fastest'
-                case 'cost-effective': return 'Eco-friendly'
-                case 'low-traffic': return 'Scenic'
-                case 'long-drive': return 'Adventure'
-                default: return 'Eco-friendly'
-              }
-            }
-            setRouteType(mapRouteType(savedRouteData.selectedOptions.type))
-          }
-        }
-      } catch (error) {
-        console.error('Error loading saved route data:', error)
-      }
-    }
-
-    loadSavedRouteData()
-  }, [])
 
   // Load profile image from AsyncStorage or Clerk
   useEffect(() => {
     const loadProfileImage = async () => {
       if (isSignedIn && user) {
         try {
-          // Try loading from AsyncStorage first
           const storedImageUrl = await AsyncStorage.getItem(PROFILE_IMAGE_KEY)
           if (storedImageUrl) {
             setProfileImage(storedImageUrl)
@@ -169,7 +105,6 @@ export default function TravelPlannerScreen() {
             await AsyncStorage.setItem(PROFILE_IMAGE_KEY, user.imageUrl)
           }
 
-          // Update username from Clerk if available
           if (user.username || user.fullName) {
             setUserName(user.username || user.fullName || userName)
           }
@@ -177,7 +112,6 @@ export default function TravelPlannerScreen() {
           console.error('Error loading profile image:', error)
         }
       } else {
-        // If not signed in, use a placeholder image
         setProfileImage('https://randomuser.me/api/portraits/men/40.jpg')
       }
     }
@@ -185,23 +119,17 @@ export default function TravelPlannerScreen() {
     loadProfileImage()
   }, [isSignedIn, user])
 
-  // Dummy coordinates for map
-  const [mapRegion, setMapRegion] = useState({
-    latitude: 23.2599,
-    longitude: 77.4126,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  })
-
   // Load nearby places on startup
   useEffect(() => {
     fetchNearbyPlaces()
   }, [])
 
   const fetchNearbyPlaces = async () => {
+    if (!destination) return
+
     setIsLoading(true)
     try {
-      const result = await findNearbyPlaces(userLocation)
+      const result = await findNearbyPlaces(destination)
       if (result.places) {
         setNearbyPlaces(result.places)
       }
@@ -212,6 +140,13 @@ export default function TravelPlannerScreen() {
     }
   }
 
+  // Add useEffect to fetch nearby places when destination changes
+  useEffect(() => {
+    if (destination) {
+      fetchNearbyPlaces()
+    }
+  }, [destination])
+
   // Navigate to the map screen
   const navigateToMapScreen = () => {
     router.push('/(tabs)/')
@@ -219,36 +154,36 @@ export default function TravelPlannerScreen() {
 
   // Add new function to generate route plan
   const generateTravelPlan = async () => {
-    if (!planningLocation || !destination) {
-      Alert.alert('Missing Information', 'Please enter both a starting location and destination.')
+    if (!destination) {
+      Alert.alert('Missing Information', 'Please enter a destination.')
       return
     }
 
     setIsGeneratingPlan(true)
 
     try {
-      const result = await generateRoutePlan(planningLocation, destination, {
-        duration: duration,
-        travellers: travellers,
-        budget: budget,
-        routeType: routeType
-      })
+      // Create a detailed prompt using user preferences
+      const prompt = `Generate a detailed trip plan for ${destination} with the following preferences:
+      - Duration: ${duration} days
+      - Number of travelers: ${travellers}
+      - Budget: ₹${budget}
+      - Travel style: ${routeType}
+      
+      Focus only on places and activities within ${destination}. Include:
+      1. Daily itinerary with specific times
+      2. Must-visit attractions within the city
+      3. Local experiences and activities
+      4. Eco-friendly transportation options within the city
+      5. Estimated costs for each activity
+      6. Best times to visit each location
+      7. Local tips and recommendations`
+
+      const result = await generateRoutePlan(prompt)
 
       if (result.routePlan) {
         setRoutePlan(result.routePlan)
-        // Update the stops for the timeline
         if (result.routePlan.stops && result.routePlan.stops.length > 0) {
           setPlanStops(result.routePlan.stops)
-        }
-
-        // Set map coordinates if available
-        if (result.routePlan.startCoordinates && result.routePlan.endCoordinates) {
-          setMapCoordinates({
-            startLat: result.routePlan.startCoordinates.latitude,
-            startLng: result.routePlan.startCoordinates.longitude,
-            endLat: result.routePlan.endCoordinates.latitude,
-            endLng: result.routePlan.endCoordinates.longitude
-          })
         }
       }
     } catch (error) {
@@ -260,9 +195,7 @@ export default function TravelPlannerScreen() {
   }
 
   const handleApplyFilters = () => {
-    setShowDurationDropdown(false)
     setShowTravellersDropdown(false)
-    setShowBudgetDropdown(false)
     setShowRouteTypeDropdown(false)
     setShowFilters(false)
 
@@ -283,14 +216,8 @@ export default function TravelPlannerScreen() {
     setStartLocation('Current Location')
   }
 
-  // Duration options
-  const durationOptions = ['Any', '1-3 days', '3-5 days', '5-7 days', '7+ days']
-
   // Travellers options
   const travellersOptions = ['1', '2', '3', '4', '5+']
-
-  // Budget options
-  const budgetOptions = ['Low', 'Medium', 'High']
 
   // Route type options
   const routeTypeOptions = ['Eco-friendly', 'Fastest', 'Scenic', 'Adventure']
@@ -331,46 +258,12 @@ export default function TravelPlannerScreen() {
   const renderFilters = () => (
     <View style={styles.filtersContainer}>
       <View style={styles.planningInputContainer}>
-        {hasMapRouteData ? (
-          // Show the preloaded data from the map with a note
-          <View style={styles.mapDataInfoContainer}>
-            <ThemedText style={styles.mapDataInfoText}>
-              Using route data from map
-            </ThemedText>
-            <TouchableOpacity
-              style={styles.editMapRouteButton}
-              onPress={navigateToMapScreen}
-            >
-              <Ionicons name="map-outline" size={16} color={COLORS.darkGreen} />
-              <ThemedText style={styles.editMapRouteText}>Edit on Map</ThemedText>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          // Show a message prompting to use the map
-          <TouchableOpacity
-            style={styles.chooseOnMapButton}
-            onPress={navigateToMapScreen}
-          >
-            <Ionicons name="map" size={20} color={COLORS.white} />
-            <ThemedText style={styles.chooseOnMapText}>Choose locations on map</ThemedText>
-          </TouchableOpacity>
-        )}
-
         <TextInput
-          style={hasMapRouteData ? styles.planningInputDisabled : styles.planningInput}
-          placeholder="Starting location..."
-          value={planningLocation}
-          onChangeText={setPlanningLocation}
-          placeholderTextColor={COLORS.soil}
-          editable={!hasMapRouteData} // Disable if we have map data
-        />
-        <TextInput
-          style={hasMapRouteData ? styles.planningInputDisabled : styles.planningInput}
-          placeholder="Destination..."
+          style={styles.planningInput}
+          placeholder="Enter your destination..."
           value={destination}
           onChangeText={setDestination}
           placeholderTextColor={COLORS.soil}
-          editable={!hasMapRouteData} // Disable if we have map data
         />
         <TouchableOpacity
           style={styles.planButton}
@@ -382,10 +275,34 @@ export default function TravelPlannerScreen() {
           ) : (
             <>
               <Ionicons name="navigate" size={16} color={COLORS.white} />
-              <ThemedText style={styles.planButtonText}>Plan Route</ThemedText>
+              <ThemedText style={styles.planButtonText}>Plan Trip</ThemedText>
             </>
           )}
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.filterRow}>
+        <View style={styles.filterInputContainer}>
+          <TextInput
+            style={styles.filterInput}
+            placeholder="Trip duration (days)"
+            value={duration}
+            onChangeText={setDuration}
+            keyboardType="numeric"
+            placeholderTextColor={COLORS.soil}
+          />
+        </View>
+
+        <View style={styles.filterInputContainer}>
+          <TextInput
+            style={styles.filterInput}
+            placeholder="Budget (₹)"
+            value={budget}
+            onChangeText={setBudget}
+            keyboardType="numeric"
+            placeholderTextColor={COLORS.soil}
+          />
+        </View>
       </View>
 
       <View style={styles.filterRow}>
@@ -393,39 +310,11 @@ export default function TravelPlannerScreen() {
           <TouchableOpacity
             style={styles.filterButton}
             onPress={() => {
-              setShowDurationDropdown(!showDurationDropdown);
-              setShowTravellersDropdown(false);
-              setShowBudgetDropdown(false);
-              setShowRouteTypeDropdown(false);
-            }}
-          >
-            <ThemedText style={styles.filterButtonText}>duration: {duration}</ThemedText>
-            <Ionicons
-              name={showDurationDropdown ? "chevron-up" : "chevron-down"}
-              size={16}
-              color={COLORS.darkGreen}
-            />
-          </TouchableOpacity>
-          {renderDropdown(
-            durationOptions,
-            duration,
-            setDuration,
-            showDurationDropdown,
-            setShowDurationDropdown
-          )}
-        </View>
-
-        <View style={{ width: '48%' }}>
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => {
               setShowTravellersDropdown(!showTravellersDropdown);
-              setShowDurationDropdown(false);
-              setShowBudgetDropdown(false);
               setShowRouteTypeDropdown(false);
             }}
           >
-            <ThemedText style={styles.filterButtonText}>travellers: {travellers}</ThemedText>
+            <ThemedText style={styles.filterButtonText}>Travellers: {travellers}</ThemedText>
             <Ionicons
               name={showTravellersDropdown ? "chevron-up" : "chevron-down"}
               size={16}
@@ -440,46 +329,16 @@ export default function TravelPlannerScreen() {
             setShowTravellersDropdown
           )}
         </View>
-      </View>
-
-      <View style={styles.filterRow}>
-        <View style={{ width: '48%' }}>
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => {
-              setShowBudgetDropdown(!showBudgetDropdown);
-              setShowDurationDropdown(false);
-              setShowTravellersDropdown(false);
-              setShowRouteTypeDropdown(false);
-            }}
-          >
-            <ThemedText style={styles.filterButtonText}>budget: {budget}</ThemedText>
-            <Ionicons
-              name={showBudgetDropdown ? "chevron-up" : "chevron-down"}
-              size={16}
-              color={COLORS.darkGreen}
-            />
-          </TouchableOpacity>
-          {renderDropdown(
-            budgetOptions,
-            budget,
-            setBudget,
-            showBudgetDropdown,
-            setShowBudgetDropdown
-          )}
-        </View>
 
         <View style={{ width: '48%' }}>
           <TouchableOpacity
             style={styles.filterButton}
             onPress={() => {
               setShowRouteTypeDropdown(!showRouteTypeDropdown);
-              setShowDurationDropdown(false);
               setShowTravellersDropdown(false);
-              setShowBudgetDropdown(false);
             }}
           >
-            <ThemedText style={styles.filterButtonText}>route: {routeType}</ThemedText>
+            <ThemedText style={styles.filterButtonText}>Route: {routeType}</ThemedText>
             <Ionicons
               name={showRouteTypeDropdown ? "chevron-up" : "chevron-down"}
               size={16}
@@ -505,7 +364,9 @@ export default function TravelPlannerScreen() {
 
   const renderNearbyPlaces = () => (
     <View style={styles.nearbyPlacesContainer}>
-      <ThemedText style={styles.sectionTitle}>nearby places</ThemedText>
+      <ThemedText style={styles.sectionTitle}>
+        {destination ? `Places to visit in ${destination}` : 'Enter destination to see places'}
+      </ThemedText>
 
       {isLoading ? (
         <ActivityIndicator
@@ -513,113 +374,78 @@ export default function TravelPlannerScreen() {
           color={COLORS.leafGreen}
           style={styles.loader}
         />
-      ) : (
+      ) : nearbyPlaces.length > 0 ? (
         nearbyPlaces.map((place, index) => (
           <View key={index} style={styles.placeItem}>
             <View style={styles.placeInfo}>
               <ThemedText style={styles.placeNumber}>
-                {index + 1}. {place.name.toLowerCase()}
+                {index + 1}. {place.name}
               </ThemedText>
               <View style={styles.placeDetails}>
                 <ThemedText style={styles.placeDistance}>
-                  distance: {place.distance}
+                  Distance from city center: {place.distance}
                 </ThemedText>
                 <ThemedText style={styles.placeTime}>
-                  time: {place.time}
+                  Best time to visit: {place.bestTime || 'All day'}
                 </ThemedText>
+                {place.entryFee && (
+                  <ThemedText style={styles.placeEntryFee}>
+                    Entry Fee: ₹{place.entryFee}
+                  </ThemedText>
+                )}
               </View>
+              <ThemedText style={styles.placeDescription}>
+                {place.description}
+              </ThemedText>
             </View>
             <Image source={{ uri: place.imageUrl }} style={styles.placeImage} />
           </View>
         ))
+      ) : (
+        <ThemedText style={styles.noPlacesText}>
+          No places found. Try entering a different destination.
+        </ThemedText>
       )}
     </View>
   )
 
   const renderRoutePlan = () => {
-    // Update to use generated plan stops if available, otherwise fallback to dummy data
     const stops = planStops.length > 0 ? planStops : [
       {
         time: '07:32',
-        location: '152 Dooley Drive Suite 484',
-        description: 'Victoria Hotel',
+        location: 'Victoria Hotel',
+        description: 'Check-in and rest',
         isCheckpoint: true,
       },
       {
         time: '10:27',
-        location: '918 Rosario Fields',
-        description: 'Gas station',
+        location: 'Local Market',
+        description: 'Explore local culture',
         isCheckpoint: true,
       },
       {
         time: '11:35',
-        location: '570 Botsford Forks',
-        description: 'Restaurant',
+        location: 'Heritage Site',
+        description: 'Visit historical landmarks',
         isCheckpoint: false,
       },
       {
         time: '12:24',
-        location: '242 Alanna Run',
-        description: 'Dropoff',
+        location: 'Eco-friendly Restaurant',
+        description: 'Lunch break',
         isCheckpoint: false,
       },
     ]
 
     return (
       <View style={styles.routePlanContainer}>
-        <ThemedText style={styles.sectionTitle}>route plan</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Trip Plan</ThemedText>
 
         <View style={styles.routeContent}>
           <View style={styles.locationUpdater}>
             <ThemedText style={styles.locationText}>
-              {planningLocation ? `From: ${planningLocation}` : 'Enter starting location above'}
+              {destination ? `Destination: ${destination}` : 'Enter destination above'}
             </ThemedText>
-            <ThemedText style={styles.locationText}>
-              {destination ? `To: ${destination}` : 'Enter destination above'}
-            </ThemedText>
-
-            {/* Display map route data summary if available */}
-            {hasMapRouteData && mapRouteData && (
-              <View style={styles.mapRouteSummary}>
-                <ThemedText style={styles.mapRouteTitle}>Map Route Data</ThemedText>
-
-                {mapRouteData.routeDetails && (
-                  <>
-                    <View style={styles.mapRouteDetailRow}>
-                      <Ionicons name="navigate" size={16} color={COLORS.darkGreen} />
-                      <ThemedText style={styles.mapRouteDetail}>
-                        Distance: {mapRouteData.routeDetails.distance}
-                      </ThemedText>
-                    </View>
-
-                    <View style={styles.mapRouteDetailRow}>
-                      <Ionicons name="time" size={16} color={COLORS.darkGreen} />
-                      <ThemedText style={styles.mapRouteDetail}>
-                        Time: {mapRouteData.routeDetails.duration}
-                      </ThemedText>
-                    </View>
-
-                    {mapRouteData.routeDetails.co2Emission && (
-                      <View style={styles.mapRouteDetailRow}>
-                        <Ionicons name="leaf" size={16} color={COLORS.darkGreen} />
-                        <ThemedText style={styles.mapRouteDetail}>
-                          CO₂: {mapRouteData.routeDetails.co2Emission}
-                        </ThemedText>
-                      </View>
-                    )}
-
-                    {mapRouteData.routeDetails.selectedVehicle && (
-                      <View style={styles.mapRouteDetailRow}>
-                        <Ionicons name="car" size={16} color={COLORS.darkGreen} />
-                        <ThemedText style={styles.mapRouteDetail}>
-                          Vehicle: {mapRouteData.routeDetails.selectedVehicle.vehicle}
-                        </ThemedText>
-                      </View>
-                    )}
-                  </>
-                )}
-              </View>
-            )}
 
             {routePlan && routePlan.estimatedDistance && routePlan.estimatedDuration && (
               <View style={styles.routeSummary}>
@@ -639,193 +465,43 @@ export default function TravelPlannerScreen() {
             )}
           </View>
 
-          {/* Show timeline only if we don't have map data or if we have generated a plan */}
-          {(!hasMapRouteData || planStops.length > 0) && (
-            <View style={styles.timeline}>
-              {stops.map((stop, index) => (
-                <View key={index} style={styles.timelineItem}>
-                  <ThemedText style={styles.timelineTime}>{stop.time}</ThemedText>
-                  <View style={styles.timelineMarkerContainer}>
-                    <View
-                      style={[
-                        styles.timelineMarker,
-                        stop.isCheckpoint
-                          ? styles.checkpointMarker
-                          : styles.regularMarker,
-                      ]}
-                    />
-                    {index < stops.length - 1 && (
-                      <View style={styles.timelineConnector} />
-                    )}
-                  </View>
-                  <View style={styles.timelineContent}>
-                    <ThemedText style={styles.timelineLocation}>
-                      {stop.location}
-                    </ThemedText>
-                    <ThemedText style={styles.timelineDescription}>
-                      {stop.description}
-                    </ThemedText>
-                  </View>
+          <View style={styles.timeline}>
+            {stops.map((stop, index) => (
+              <View key={index} style={styles.timelineItem}>
+                <ThemedText style={styles.timelineTime}>{stop.time}</ThemedText>
+                <View style={styles.timelineMarkerContainer}>
+                  <View
+                    style={[
+                      styles.timelineMarker,
+                      stop.isCheckpoint
+                        ? styles.checkpointMarker
+                        : styles.regularMarker,
+                    ]}
+                  />
+                  {index < stops.length - 1 && (
+                    <View style={styles.timelineConnector} />
+                  )}
                 </View>
-              ))}
-            </View>
-          )}
+                <View style={styles.timelineContent}>
+                  <ThemedText style={styles.timelineLocation}>
+                    {stop.location}
+                  </ThemedText>
+                  <ThemedText style={styles.timelineDescription}>
+                    {stop.description}
+                  </ThemedText>
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
-
-        <TouchableOpacity
-          style={styles.viewMapButton}
-          onPress={hasMapRouteData ? navigateToMapScreen : handleViewMap}
-          disabled={!hasMapRouteData && !mapCoordinates}
-        >
-          <Ionicons name="map" size={16} color={COLORS.white} />
-          <ThemedText style={styles.viewMapText}>
-            {hasMapRouteData ? "Return to Map" : "View on Map"}
-          </ThemedText>
-        </TouchableOpacity>
       </View>
     )
   }
-
-  // Add a reference for the webview in the map modal
-  const webViewRef = useRef(null);
-
-  const handleViewMap = () => {
-    if (!mapCoordinates) {
-      Alert.alert('No Coordinates', 'Cannot view on map as coordinates are missing.')
-      return
-    }
-
-    // Using route parameters to share location data with the map screen
-    setShowMapModal(true)
-
-    // Set the map region and markers based on the coordinates
-    if (webViewRef.current) {
-      setTimeout(() => {
-        webViewRef.current?.injectJavaScript(`
-          if (map) {
-            // Add start marker
-            addStartMarker(${mapCoordinates.startLat}, ${mapCoordinates.startLng});
-
-            // Add end marker
-            addEndMarker(${mapCoordinates.endLat}, ${mapCoordinates.endLng});
-
-            // Center map to show both markers
-            var bounds = new tt.LngLatBounds();
-            bounds.extend([${mapCoordinates.startLng}, ${mapCoordinates.startLat}]);
-            bounds.extend([${mapCoordinates.endLng}, ${mapCoordinates.endLat}]);
-
-            map.fitBounds(bounds, {
-              padding: {top: 50, bottom: 50, left: 50, right: 50},
-              maxZoom: 15
-            });
-
-            true;
-          }
-        `);
-      }, 500);
-    }
-  }
-
-  // Modal for map view
-  const renderMapModal = () => (
-    <Modal
-      visible={showMapModal}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={() => setShowMapModal(false)}
-    >
-      <View style={styles.modalContainer}>
-        <WebView
-          ref={webViewRef}
-          source={{ html: `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <link rel="stylesheet" type="text/css" href="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css">
-              <style>
-                body, html, #map { margin: 0; padding: 0; height: 100%; width: 100%; }
-                .marker { width: 30px; height: 30px; }
-                .marker-start { background-color: ${COLORS.leafGreen}; border-radius: 50%; }
-                .marker-end { background-color: ${COLORS.bark}; border-radius: 50%; }
-              </style>
-            </head>
-            <body>
-              <div id="map"></div>
-              <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-web.min.js"></script>
-              <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/services/services-web.min.js"></script>
-              <script>
-                var map;
-                var startMarker;
-                var endMarker;
-                var routeLayer;
-
-                const apiKey = '${TOMTOM_API_KEY}';
-
-                function initMap() {
-                  map = tt.map({
-                    key: apiKey,
-                    container: 'map',
-                    center: [77.4126, 23.2599], // Default center (Bhopal)
-                    zoom: 13
-                  });
-                }
-
-                function addStartMarker(lat, lng) {
-                  if (startMarker) {
-                    startMarker.remove();
-                  }
-
-                  var el = document.createElement('div');
-                  el.className = 'marker marker-start';
-
-                  startMarker = new tt.Marker({element: el})
-                    .setLngLat([lng, lat])
-                    .addTo(map);
-                }
-
-                function addEndMarker(lat, lng) {
-                  if (endMarker) {
-                    endMarker.remove();
-                  }
-
-                  var el = document.createElement('div');
-                  el.className = 'marker marker-end';
-
-                  endMarker = new tt.Marker({element: el})
-                    .setLngLat([lng, lat])
-                    .addTo(map);
-                }
-
-                // Initialize the map
-                document.addEventListener('DOMContentLoaded', initMap);
-              </script>
-            </body>
-            </html>
-          ` }}
-          style={styles.map}
-          javaScriptEnabled={true}
-          geolocationEnabled={true}
-          onMessage={(event) => {
-            console.log('WebView message:', event.nativeEvent.data);
-          }}
-        />
-
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => setShowMapModal(false)}
-        >
-          <Ionicons name="close" size={24} color={COLORS.white} />
-        </TouchableOpacity>
-      </View>
-    </Modal>
-  )
 
   return (
     <ThemedView style={styles.container}>
       <StatusBar style="dark" />
 
-      {/* User greeting header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <ThemedText style={styles.greeting}>travel planner</ThemedText>
         <View style={styles.userInfoContainer}>
@@ -846,18 +522,10 @@ export default function TravelPlannerScreen() {
       </View>
 
       <ScrollView style={styles.content}>
-        {/* Filters section */}
         {renderFilters()}
-
-        {/* Nearby places section */}
         {renderNearbyPlaces()}
-
-        {/* Route plan section */}
         {renderRoutePlan()}
       </ScrollView>
-
-      {/* Map modal */}
-      {renderMapModal()}
     </ThemedView>
   )
 }
@@ -1331,5 +999,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 8,
     fontWeight: '500',
+  },
+  filterInputContainer: {
+    width: '48%',
+  },
+  filterInput: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.darkGreen,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    color: COLORS.soil,
+  },
+  placeDescription: {
+    color: COLORS.soil,
+    fontSize: 14,
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  placeEntryFee: {
+    color: COLORS.leafGreen,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  noPlacesText: {
+    color: COLORS.soil,
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
   },
 })
