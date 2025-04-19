@@ -34,6 +34,7 @@
     "expo": "~52.0.43",
     "expo-blur": "~14.0.3",
     "expo-constants": "~17.0.8",
+    "expo-dev-client": "~5.0.20",
     "expo-document-picker": "^13.0.3",
     "expo-font": "~13.0.4",
     "expo-haptics": "~14.0.1",
@@ -54,6 +55,7 @@
     "react-dom": "18.3.1",
     "react-native": "0.76.9",
     "react-native-calendars": "^1.1310.0",
+    "react-native-chart-kit": "^6.12.0",
     "react-native-gesture-handler": "~2.20.2",
     "react-native-maps": "^1.22.1",
     "react-native-reanimated": "~3.16.1",
@@ -64,8 +66,7 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
-    "uuid": "^11.1.0",
-    "expo-dev-client": "~5.0.20"
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
