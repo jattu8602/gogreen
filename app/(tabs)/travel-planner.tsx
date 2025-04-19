@@ -3,8 +3,7 @@
 // This file uses JSX which is handled by the React Native transpiler
 // Disabling TypeScript checks to match the other components
 
-import * as React from 'react'
-const { useState, useEffect, useRef } = React
+import React, { useState, useEffect, useRef } from 'react'
 import {
   View,
   StyleSheet,
@@ -20,6 +19,7 @@ import {
   ActivityIndicator,
   FlatList,
   Alert,
+  Platform,
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import {
@@ -31,9 +31,9 @@ import {
 import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
 import {
-  generateRoutePlan,
+  generateTravelPlan,
   findNearbyPlaces,
-  RoutePlan,
+  TravelPlan,
   NearbyPlace,
 } from '../services/geminiService'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -43,9 +43,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { WebView } from 'react-native-webview'
 import { TOMTOM_API_KEY } from '../../constants/Config'
 import { useNavigation, useRouter } from 'expo-router'
+import { LinearGradient } from 'expo-linear-gradient'
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 // Define tree-themed colors to match the rest of the app
 const COLORS = {
+  primary: '#FF7757', // Coral/orange for primary elements
+  secondary: '#FFB74D', // Lighter orange
+  background: '#FFF8E7', // Warm cream
+  cardBackground: '#FFFFFF',
+  text: '#2D3748',
+  textLight: '#718096',
+  inputBorder: 'rgba(0,0,0,0.08)',
+  iconBlue: '#63B3ED',
+  iconOrange: '#F6AD55',
+  iconGreen: '#68D391',
   leafGreen: '#22C55E', // Vibrant leaf green for active items
   darkGreen: '#166534', // Darker green for secondary elements
   bark: '#854D0E', // Brown bark color for accents
@@ -57,6 +69,13 @@ const COLORS = {
   orange: '#E86D28', // Orange for highlights and buttons
   darkBackground: '#111111', // Dark background color
   grey: '#CCCCCC', // Grey for inactive elements
+  purple: '#7C3AED', // Purple for avatar background
+  warmGradientStart: '#FFE5C2', // Warm gradient start color
+  warmGradientEnd: '#FFD6A0', // Warm gradient end color
+  cream: '#FFF8E7',
+  placeholderText: '#9CA3AF',
+  labelText: '#374151',
+  iconColor: '#6B7280',
 }
 
 const WINDOW_WIDTH = Dimensions.get('window').width
@@ -67,888 +86,790 @@ const PROFILE_IMAGE_KEY = 'user_profile_image'
 const SAVED_ROUTE_DATA_KEY = 'SAVED_ROUTE_DATA'
 
 export default function TravelPlannerScreen() {
-  const [startLocation, setStartLocation] = useState('Current Location')
-  const [endLocation, setEndLocation] = useState('')
-  const [routePlan, setRoutePlan] = useState<RoutePlan | null>(null)
-  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [showFilters, setShowFilters] = useState(false)
-  const [duration, setDuration] = useState('')
-  const [travellers, setTravellers] = useState('1')
-  const [budget, setBudget] = useState('')
-  const [routeType, setRouteType] = useState('Eco-friendly')
-  const [userName, setUserName] = useState('Jatin')
-  const [userLocation, setUserLocation] = useState('Bhopal')
-  const [showMapModal, setShowMapModal] = useState(false)
-  const [profileImage, setProfileImage] = useState<string | null>(null)
-  const [showTravellersDropdown, setShowTravellersDropdown] = useState(false)
-  const [showRouteTypeDropdown, setShowRouteTypeDropdown] = useState(false)
-  const { user, isSignedIn } = useUser()
-  const insets = useSafeAreaInsets()
-  const router = useRouter()
-
-  // Remove map route data states
   const [destination, setDestination] = useState('')
-  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false)
-  const [planStops, setPlanStops] = useState<any[]>([])
+  const [duration, setDuration] = useState('')
+  const [budget, setBudget] = useState('')
+  const [travellers, setTravellers] = useState('1')
+  const [showTravellersDropdown, setShowTravellersDropdown] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [travelPlan, setTravelPlan] = useState<TravelPlan | null>(null)
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([])
+  const insets = useSafeAreaInsets()
 
-  // Load profile image from AsyncStorage or Clerk
-  useEffect(() => {
-    const loadProfileImage = async () => {
-      if (isSignedIn && user) {
-        try {
-          const storedImageUrl = await AsyncStorage.getItem(PROFILE_IMAGE_KEY)
-          if (storedImageUrl) {
-            setProfileImage(storedImageUrl)
-          } else if (user.imageUrl) {
-            setProfileImage(user.imageUrl)
-            await AsyncStorage.setItem(PROFILE_IMAGE_KEY, user.imageUrl)
-          }
-
-          if (user.username || user.fullName) {
-            setUserName(user.username || user.fullName || userName)
-          }
-        } catch (error) {
-          console.error('Error loading profile image:', error)
-        }
-      } else {
-        setProfileImage('https://randomuser.me/api/portraits/men/40.jpg')
-      }
-    }
-
-    loadProfileImage()
-  }, [isSignedIn, user])
-
-  // Load nearby places on startup
-  useEffect(() => {
-    fetchNearbyPlaces()
-  }, [])
-
-  const fetchNearbyPlaces = async () => {
-    if (!destination) return
-
-    setIsLoading(true)
-    try {
-      const result = await findNearbyPlaces(destination)
-      if (result.places) {
-        setNearbyPlaces(result.places)
-      }
-    } catch (error) {
-      console.error('Error fetching nearby places:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Add useEffect to fetch nearby places when destination changes
-  useEffect(() => {
-    if (destination) {
-      fetchNearbyPlaces()
-    }
-  }, [destination])
-
-  // Navigate to the map screen
-  const navigateToMapScreen = () => {
-    router.push('/(tabs)/')
-  }
-
-  // Add new function to generate route plan
-  const generateTravelPlan = async () => {
-    if (!destination) {
-      Alert.alert('Missing Information', 'Please enter a destination.')
+  // Function to handle trip planning
+  const handlePlanTrip = async () => {
+    if (!destination || !duration || !budget) {
+      Alert.alert('Missing Information', 'Please enter destination, duration, and budget.')
       return
     }
 
-    setIsGeneratingPlan(true)
-
+    setLoading(true)
     try {
-      // Create a detailed prompt using user preferences
-      const prompt = `Generate a detailed trip plan for ${destination} with the following preferences:
-      - Duration: ${duration} days
-      - Number of travelers: ${travellers}
-      - Budget: ₹${budget}
-      - Travel style: ${routeType}
+      const result = await generateTravelPlan(
+        destination,
+        parseInt(duration),
+        budget,
+        travellers
+      )
 
-      Focus only on places and activities within ${destination}. Include:
-      1. Daily itinerary with specific times
-      2. Must-visit attractions within the city
-      3. Local experiences and activities
-      4. Eco-friendly transportation options within the city
-      5. Estimated costs for each activity
-      6. Best times to visit each location
-      7. Local tips and recommendations`
-
-      const result = await generateRoutePlan(prompt)
-
-      if (result.routePlan) {
-        setRoutePlan(result.routePlan)
-        if (result.routePlan.stops && result.routePlan.stops.length > 0) {
-          setPlanStops(result.routePlan.stops)
+      if (result.travelPlan) {
+        setTravelPlan(result.travelPlan)
+        // Also fetch nearby places
+        const nearbyResult = await findNearbyPlaces(destination)
+        if (nearbyResult.places) {
+          setNearbyPlaces(nearbyResult.places)
         }
       }
     } catch (error) {
-      console.error('Error generating route plan:', error)
-      Alert.alert('Error', 'Failed to generate route plan. Please try again.')
+      console.error('Error planning trip:', error)
+      Alert.alert('Error', 'Failed to plan trip. Please try again.')
     } finally {
-      setIsGeneratingPlan(false)
+      setLoading(false)
     }
   }
 
-  const handleApplyFilters = () => {
-    setShowTravellersDropdown(false)
-    setShowRouteTypeDropdown(false)
-    setShowFilters(false)
-
-    fetchNearbyPlaces()
-  }
-
-  const navigateToPlace = (placeName: string) => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      placeName
-    )}`
-    Linking.openURL(url).catch((err) =>
-      console.error('Error opening navigation:', err)
-    )
-  }
-
-  const updateLocation = () => {
-    // In a real app, this would get the current GPS location
-    setStartLocation('Current Location')
-  }
-
-  // Travellers options
-  const travellersOptions = ['1', '2', '3', '4', '5+']
-
-  // Route type options
-  const routeTypeOptions = ['Eco-friendly', 'Fastest', 'Scenic', 'Adventure']
-
-  // Function to render dropdown
-  const renderDropdown = (options, currentValue, onSelect, visible, setVisible) => {
-    if (!visible) return null;
-
     return (
-      <View style={styles.dropdownContainer}>
-        {options.map((option, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.dropdownItem,
-              currentValue === option && styles.selectedDropdownItem
-            ]}
-            onPress={() => {
-              onSelect(option);
-              setVisible(false);
-            }}
-          >
-            <ThemedText style={[
-              styles.dropdownItemText,
-              currentValue === option && styles.selectedDropdownItemText
-            ]}>
-              {option}
-            </ThemedText>
-            {currentValue === option && (
-              <Ionicons name="checkmark" size={16} color={COLORS.white} />
-            )}
+    <View style={styles.container}>
+      <StatusBar style="light" />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <LinearGradient
+          colors={[COLORS.primary, COLORS.secondary]}
+          style={StyleSheet.absoluteFill}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
+        <LinearGradient
+          colors={['rgba(255,255,255,0.2)', 'transparent']}
+          style={[StyleSheet.absoluteFill, styles.headerOverlay]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
+        <View style={[styles.headerContent, { paddingTop: insets.top + 16 }]}>
+          <Text style={styles.headerTitle}>Travel Planner</Text>
+          <TouchableOpacity style={styles.avatarButton}>
+            <Text style={styles.avatarText}>A</Text>
           </TouchableOpacity>
-        ))}
       </View>
-    );
-  };
+      </View>
 
-  const renderFilters = () => (
-    <View style={styles.filtersContainer}>
-      <ThemedText style={styles.tagline}>Plan Your Trip</ThemedText>
-
-      <View style={styles.planningInputContainer}>
+      {/* Content */}
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Input Card */}
+        <View style={styles.card}>
+          {/* Where to? */}
+          <View style={styles.inputGroup}>
+            <View style={styles.labelRow}>
+              <Ionicons name="location-outline" size={20} color={COLORS.textLight} />
+              <Text style={styles.label}>Where to?</Text>
+            </View>
         <TextInput
-          style={styles.planningInput}
-          placeholder="Enter your destination..."
+              style={styles.input}
+              placeholder="Enter your destination"
           value={destination}
           onChangeText={setDestination}
-          placeholderTextColor={COLORS.soil}
-        />
+              placeholderTextColor={COLORS.textLight}
+            />
       </View>
 
-      <View style={styles.filterRow}>
-        <View style={styles.filterInputContainer}>
+          {/* Duration and Budget */}
+          <View style={styles.row}>
+            <View style={styles.halfInput}>
+              <View style={styles.labelRow}>
+                <Ionicons name="calendar-outline" size={20} color={COLORS.textLight} />
+                <Text style={styles.label}>Duration</Text>
+              </View>
           <TextInput
-            style={styles.filterInput}
-            placeholder="Trip duration (days)"
+                style={styles.input}
+                placeholder="Enter days"
             value={duration}
             onChangeText={setDuration}
             keyboardType="numeric"
-            placeholderTextColor={COLORS.soil}
+                placeholderTextColor={COLORS.textLight}
           />
         </View>
 
-        <View style={styles.filterInputContainer}>
+            <View style={styles.halfInput}>
+              <View style={styles.labelRow}>
+                <Ionicons name="wallet-outline" size={20} color={COLORS.textLight} />
+                <Text style={styles.label}>Budget</Text>
+              </View>
           <TextInput
-            style={styles.filterInput}
-            placeholder="Budget (₹)"
+                style={styles.input}
+                placeholder="Enter amount"
             value={budget}
             onChangeText={setBudget}
             keyboardType="numeric"
-            placeholderTextColor={COLORS.soil}
+                placeholderTextColor={COLORS.textLight}
           />
         </View>
 
-        <View style={styles.filterInputContainer}>
-          <TextInput
-            style={styles.filterInput}
-            placeholder="No. of travellers"
-            value={travellers}
-            onChangeText={setTravellers}
-            keyboardType="numeric"
-            placeholderTextColor={COLORS.soil}
-          />
+          {/* Travellers */}
+          <View style={styles.inputGroup}>
+            <View style={styles.labelRow}>
+              <Ionicons name="people-outline" size={20} color={COLORS.textLight} />
+              <Text style={styles.label}>Travellers</Text>
+            </View>
+          <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowTravellersDropdown(!showTravellersDropdown)}
+            >
+              <Text style={[
+                styles.inputText,
+                !travellers && styles.placeholderText
+              ]}>
+                {travellers ? `${travellers} Traveller${travellers === '1' ? '' : 's'}` : 'Select number of travellers'}
+              </Text>
+          </TouchableOpacity>
         </View>
+
+          {/* Plan Trip Button */}
+          <TouchableOpacity
+            style={styles.planButton}
+            onPress={handlePlanTrip}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.planButtonText}>Plan Trip</Text>
+            )}
+          </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={styles.planButton}
-        onPress={generateTravelPlan}
-        disabled={isGeneratingPlan}
-      >
-        {isGeneratingPlan ? (
-          <ActivityIndicator size="small" color={COLORS.white} />
-        ) : (
-          <>
-            <Ionicons name="navigate" size={16} color={COLORS.white} />
-            <ThemedText style={styles.planButtonText}>Plan Trip</ThemedText>
-          </>
-        )}
-      </TouchableOpacity>
+        {/* Travel Plan Section */}
+        {travelPlan && (
+          <View style={styles.travelPlanSection}>
+            <Text style={styles.sectionTitle}>Your Travel Plan</Text>
+            <View style={styles.travelPlanCard}>
+              <View style={styles.planHeader}>
+                <Text style={styles.planTitle}>{travelPlan.city}</Text>
+                <View style={styles.planMetadata}>
+                  <Text style={styles.planDuration}>{travelPlan.duration}</Text>
+                  <Text style={styles.planMetadataDot}>•</Text>
+                  <Text style={styles.planTravelers}>{travelPlan.travelers}</Text>
     </View>
-  )
-
-  const renderNearbyPlaces = () => (
-    <View style={styles.nearbyPlacesContainer}>
-      <ThemedText style={styles.sectionTitle}>
-        {destination ? `Places to visit in ${destination}` : 'Enter destination to see places'}
-      </ThemedText>
-
-      {isLoading ? (
-        <ActivityIndicator
-          size="large"
-          color={COLORS.leafGreen}
-          style={styles.loader}
-        />
-      ) : nearbyPlaces.length > 0 ? (
-        nearbyPlaces.map((place, index) => (
-          <View key={index} style={styles.placeItem}>
-            <View style={styles.placeInfo}>
-              <ThemedText style={styles.placeNumber}>
-                {index + 1}. {place.name}
-              </ThemedText>
-              <View style={styles.placeDetails}>
-                <ThemedText style={styles.placeDistance}>
-                  Distance from city center: {place.distance}
-                </ThemedText>
-                <ThemedText style={styles.placeTime}>
-                  Best time to visit: {place.bestTime || 'All day'}
-                </ThemedText>
-                {place.entryFee && (
-                  <ThemedText style={styles.placeEntryFee}>
-                    Entry Fee: ₹{place.entryFee}
-                  </ThemedText>
-                )}
               </View>
-              <ThemedText style={styles.placeDescription}>
-                {place.description}
-              </ThemedText>
+
+              <View style={styles.budgetContainer}>
+                <View style={styles.budgetInfo}>
+                  <Text style={styles.budgetLabel}>Budget</Text>
+                  <Text style={styles.budgetAmount}>{travelPlan.budget}</Text>
+              </View>
+                <View style={styles.budgetInfo}>
+                  <Text style={styles.budgetLabel}>Transport</Text>
+                  <Text style={styles.budgetAmount}>{travelPlan.transportationTotal}</Text>
             </View>
-            <Image
-              source={{ uri: place.imageUrl || 'https://via.placeholder.com/150' }}
-              style={styles.placeImage}
-            />
+                <View style={styles.budgetInfo}>
+                  <Text style={styles.budgetLabel}>Total Cost</Text>
+                  <Text style={[
+                    styles.budgetAmount,
+                    { color: parseFloat(travelPlan.totalCost.replace(/[^0-9.]/g, '')) >
+                            parseFloat(travelPlan.budget.replace(/[^0-9.]/g, '')) ?
+                            COLORS.orange : COLORS.leafGreen }
+                  ]}>
+                    {travelPlan.totalCost}
+                  </Text>
           </View>
-        ))
-      ) : (
-        <ThemedText style={styles.noPlacesText}>
-          No places found. Try entering a different destination.
-        </ThemedText>
-      )}
     </View>
-  )
 
-  const renderRoutePlan = () => {
-    const stops = planStops.length > 0 ? planStops : [
-      {
-        time: '07:32',
-        location: 'Victoria Hotel',
-        description: 'Check-in and rest',
-        isCheckpoint: true,
-      },
-      {
-        time: '10:27',
-        location: 'Local Market',
-        description: 'Explore local culture',
-        isCheckpoint: true,
-      },
-      {
-        time: '11:35',
-        location: 'Heritage Site',
-        description: 'Visit historical landmarks',
-        isCheckpoint: false,
-      },
-      {
-        time: '12:24',
-        location: 'Eco-friendly Restaurant',
-        description: 'Lunch break',
-        isCheckpoint: false,
-      },
-    ]
-
-    return (
-      <View style={styles.routePlanContainer}>
-        <ThemedText style={styles.sectionTitle}>Trip Plan</ThemedText>
-
-        <View style={styles.routeContent}>
-          <View style={styles.locationUpdater}>
-            <ThemedText style={styles.locationText}>
-              {destination ? `Destination: ${destination}` : 'Enter destination above'}
-            </ThemedText>
-
-            {routePlan && routePlan.estimatedDistance && routePlan.estimatedDuration && (
-              <View style={styles.routeSummary}>
-                <View style={styles.routeSummaryItem}>
-                  <Ionicons name="map" size={16} color={COLORS.darkGreen} />
-                  <ThemedText style={styles.routeSummaryText}>
-                    {routePlan.estimatedDistance}
-                  </ThemedText>
+              <View style={styles.itineraryContainer}>
+                <Text style={styles.itineraryTitle}>Daily Itinerary</Text>
+                {travelPlan.itinerary.map((day) => (
+                  <View key={day.day} style={styles.dayContainer}>
+                    <View style={styles.dayHeader}>
+                      <Text style={styles.dayTitle}>Day {day.day}</Text>
+                      <Text style={styles.dayTotal}>Total: {day.dailyTotal}</Text>
                 </View>
-                <View style={styles.routeSummaryItem}>
-                  <Ionicons name="time" size={16} color={COLORS.darkGreen} />
-                  <ThemedText style={styles.routeSummaryText}>
-                    {routePlan.estimatedDuration}
-                  </ThemedText>
+                    {day.activities.map((activity, index) => (
+                      <View key={index} style={styles.activityItem}>
+                        <View style={styles.activityTimeContainer}>
+                          <Text style={styles.activityTime}>{activity.time}</Text>
                 </View>
+                        <View style={styles.activityContent}>
+                          <View style={styles.activityHeader}>
+                            <Text style={styles.activityText}>{activity.activity}</Text>
+                            <Text style={styles.activityCost}>{activity.cost}</Text>
+                          </View>
+                          <View style={styles.activityMeta}>
+                            <View style={styles.activityType}>
+                              <MaterialCommunityIcons
+                                name={getActivityIcon(activity.type)}
+                                size={12}
+                                color={COLORS.textLight}
+                              />
+                              <Text style={styles.activityTypeText}>{activity.type}</Text>
+                            </View>
+                            {activity.ecoFriendly && (
+                              <View style={styles.ecoTag}>
+                                <Ionicons name="leaf" size={12} color={COLORS.leafGreen} />
+                                <Text style={styles.ecoTagText}>Eco-friendly</Text>
               </View>
             )}
           </View>
-
-          <View style={styles.timeline}>
-            {stops.map((stop, index) => (
-              <View key={index} style={styles.timelineItem}>
-                <ThemedText style={styles.timelineTime}>{stop.time}</ThemedText>
-                <View style={styles.timelineMarkerContainer}>
-                  <View
-                    style={[
-                      styles.timelineMarker,
-                      stop.isCheckpoint
-                        ? styles.checkpointMarker
-                        : styles.regularMarker,
-                    ]}
-                  />
-                  {index < stops.length - 1 && (
-                    <View style={styles.timelineConnector} />
+                          {activity.transportInfo && (
+                            <View style={styles.transportInfo}>
+                              <View style={styles.transportHeader}>
+                                <MaterialCommunityIcons
+                                  name={getTransportIcon(activity.transportInfo.mode)}
+                                  size={16}
+                                  color={COLORS.textLight}
+                                />
+                                <Text style={styles.transportMode}>{activity.transportInfo.mode}</Text>
+                              </View>
+                              <View style={styles.transportDetails}>
+                                <Text style={styles.transportDuration}>{activity.transportInfo.duration}</Text>
+                                <Text style={styles.transportCost}>{activity.transportInfo.cost}</Text>
+                              </View>
+                            </View>
                   )}
                 </View>
-                <View style={styles.timelineContent}>
-                  <ThemedText style={styles.timelineLocation}>
-                    {stop.location}
-                  </ThemedText>
-                  <ThemedText style={styles.timelineDescription}>
-                    {stop.description}
-                  </ThemedText>
                 </View>
+                    ))}
               </View>
             ))}
           </View>
+
+              <View style={styles.tipsContainer}>
+                <Text style={styles.tipsTitle}>Eco-Friendly Tips</Text>
+                {travelPlan.ecoFriendlyTips.map((tip, index) => (
+                  <View key={index} style={styles.tipItem}>
+                    <MaterialCommunityIcons name="leaf-circle-outline" size={20} color={COLORS.leafGreen} />
+                    <Text style={styles.tipText}>{tip}</Text>
         </View>
+                ))}
       </View>
-    )
-  }
+            </View>
+          </View>
+        )}
 
-  return (
-    <ThemedView style={styles.container}>
-      <StatusBar style="dark" />
-
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <ThemedText style={styles.greeting}>travel planner</ThemedText>
-        <View style={styles.userInfoContainer}>
-          <ThemedText style={styles.username}>{userName}</ThemedText>
-          <View style={styles.profilePhotoContainer}>
-            {profileImage ? (
-              <Image
-                source={{ uri: profileImage }}
-                style={styles.profileImage}
-              />
-            ) : (
-              <View style={styles.profileImagePlaceholder}>
-                <Ionicons name="person" size={24} color={COLORS.darkGreen} />
+        {/* Nearby Places Section - Only shown after travel plan is generated */}
+        {nearbyPlaces.length > 0 && (
+          <View style={styles.suggestedPlaces}>
+            <Text style={styles.sectionTitle}>Nearby Places</Text>
+            <View style={styles.placesList}>
+              {nearbyPlaces.map((place, index) => (
+                <View key={index} style={styles.placeCard}>
+                  <View style={[styles.placeIcon, {
+                    backgroundColor: place.ecoFriendly ?
+                      'rgba(104, 211, 145, 0.1)' : 'rgba(246, 173, 85, 0.1)'
+                  }]}>
+                    <Ionicons
+                      name={place.ecoFriendly ? "leaf" : "location"}
+                      size={24}
+                      color={place.ecoFriendly ? "#68D391" : "#F6AD55"}
+                    />
               </View>
-            )}
+                  <View style={styles.placeInfo}>
+                    <View style={styles.placeHeader}>
+                      <View style={styles.placeNameContainer}>
+                        <Text style={styles.placeName}>{place.name}</Text>
+                        <Text style={styles.placeDistance}>{place.distance}</Text>
+          </View>
+                      <Text style={styles.placeTime}>{place.time}</Text>
+        </View>
+                    <Text style={styles.placeDescription} numberOfLines={2}>{place.description}</Text>
+      </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Travellers Dropdown Overlay */}
+      {showTravellersDropdown && (
+        <View style={styles.overlay}>
+          <View style={styles.dropdownCard}>
+            {['1', '2', '3', '4', '5+'].map((num) => (
+              <TouchableOpacity
+                key={num}
+                style={[
+                  styles.dropdownItem,
+                  travellers === num && styles.selectedDropdownItem
+                ]}
+                onPress={() => {
+                  setTravellers(num)
+                  setShowTravellersDropdown(false)
+                }}
+              >
+                <Text style={[
+                  styles.dropdownText,
+                  travellers === num && styles.selectedDropdownText
+                ]}>
+                  {num} Traveller{num === '1' ? '' : 's'}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
-      </View>
-
-      <ScrollView style={styles.content}>
-        {renderFilters()}
-        {renderNearbyPlaces()}
-        {renderRoutePlan()}
-      </ScrollView>
-    </ThemedView>
+      )}
+    </View>
   )
+}
+
+// Helper function to get activity type icon
+function getActivityIcon(type: string): string {
+  switch (type.toLowerCase()) {
+    case 'accommodation':
+      return 'bed'
+    case 'food':
+      return 'food'
+    case 'activity':
+      return 'walk'
+    case 'transport':
+      return 'bus'
+    default:
+      return 'circle-small'
+  }
+}
+
+// Helper function to get transport icon
+function getTransportIcon(mode: string): string {
+  switch (mode.toLowerCase()) {
+    case 'bus':
+      return 'bus'
+    case 'train':
+      return 'train'
+    case 'taxi':
+      return 'taxi'
+    case 'walk':
+      return 'walk'
+    case 'bicycle':
+      return 'bicycle'
+    case 'subway':
+      return 'subway'
+    default:
+      return 'directions'
+  }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: COLORS.lightestGreen,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(34, 197, 94, 0.2)',
-  },
-  userInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profilePhotoContainer: {
-    height: 40,
-    width: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: COLORS.leafGreen,
-    backgroundColor: COLORS.paleGreen,
+    height: 280,
     overflow: 'hidden',
-    marginLeft: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  profileImage: {
-    height: '100%',
-    width: '100%',
+  headerOverlay: {
+    opacity: 0.5,
+  },
+  headerContent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  avatarButton: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-  },
-  profileImagePlaceholder: {
-    height: '100%',
-    width: '100%',
+    backgroundColor: COLORS.purple,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.lightestGreen,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  greeting: {
-    fontSize: 24,
-    color: COLORS.darkGreen,
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: '600',
-  },
-  username: {
-    fontSize: 16,
-    color: COLORS.bark,
-    fontWeight: '500',
   },
   content: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    marginTop: -60,
   },
-  filtersContainer: {
+  scrollContent: {
+    paddingBottom: 32,
+  },
+  card: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 24,
+    padding: 24,
     margin: 16,
-    padding: 20,
-    borderRadius: 30,
-    backgroundColor: COLORS.lightestGreen,
-    borderWidth: 1,
-    borderColor: COLORS.darkGreen,
-    shadowColor: COLORS.darkGreen,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  tagline: {
-    fontSize: 24,
-    color: COLORS.darkGreen,
-    fontWeight: '600',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  filterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    gap: 10,
-  },
-  filterInputContainer: {
-    flex: 1,
-  },
-  filterInput: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.darkGreen,
-    borderRadius: 25,
-    padding: 12,
-    fontSize: 14,
-    color: COLORS.soil,
-  },
-  planningInputContainer: {
-    marginBottom: 20,
-  },
-  planningInput: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.darkGreen,
-    borderRadius: 25,
-    padding: 12,
-    fontSize: 14,
-    color: COLORS.soil,
-  },
-  planButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.leafGreen,
-    borderRadius: 30,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    alignSelf: 'center',
-    shadowColor: COLORS.darkGreen,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
-    width: '60%',
-    marginTop: 10,
-  },
-  planButtonText: {
-    color: COLORS.white,
-    marginLeft: 5,
-    fontWeight: '500',
-  },
-  nearbyPlacesContainer: {
-    margin: 16,
-    marginTop: 0,
-    padding: 20,
-    borderRadius: 30,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.bark,
-    shadowColor: COLORS.bark,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 26,
-    color: COLORS.bark,
-    fontWeight: '600',
-    marginBottom: 20,
-  },
-  placeItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    alignItems: 'flex-start',
-    backgroundColor: COLORS.lightestGreen,
-    padding: 15,
-    borderRadius: 25,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.leafGreen,
-    gap: 15,
-  },
-  placeInfo: {
-    flex: 1,
-  },
-  placeNumber: {
-    fontSize: 20,
-    color: COLORS.darkGreen,
-    fontWeight: '500',
-    marginBottom: 5,
-  },
-  placeDetails: {
-    marginLeft: 10,
-  },
-  placeDistance: {
-    color: COLORS.soil,
-    fontSize: 14,
-  },
-  placeTime: {
-    color: COLORS.soil,
-    fontSize: 14,
-  },
-  placeImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: COLORS.white,
-  },
-  routePlanContainer: {
-    margin: 16,
-    marginTop: 0,
-    padding: 20,
-    borderRadius: 12,
-    backgroundColor: COLORS.lightestGreen,
-    borderWidth: 1,
-    borderColor: COLORS.leafGreen,
-    shadowColor: COLORS.darkGreen,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-    marginBottom: 100,
-  },
-  routeContent: {
-    backgroundColor: COLORS.white,
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: COLORS.paleGreen,
-  },
-  locationUpdater: {
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  locationText: {
-    color: COLORS.soil,
-    marginBottom: 10,
-  },
-  timeline: {
-    marginTop: 10,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  timelineTime: {
-    width: 40,
-    color: COLORS.bark,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  timelineMarkerContainer: {
-    alignItems: 'center',
-    marginHorizontal: 10,
-  },
-  timelineMarker: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginBottom: 4,
-  },
-  checkpointMarker: {
-    backgroundColor: COLORS.leafGreen,
-  },
-  regularMarker: {
-    backgroundColor: COLORS.lightBark,
-  },
-  timelineConnector: {
-    width: 2,
-    height: 40,
-    backgroundColor: COLORS.paleGreen,
-    position: 'absolute',
-    top: 16,
-  },
-  timelineContent: {
-    flex: 1,
-  },
-  timelineLocation: {
-    fontSize: 14,
-    color: COLORS.soil,
-    fontWeight: '500',
-  },
-  timelineDescription: {
-    fontSize: 12,
-    color: COLORS.lightBark,
-  },
-  viewMapButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.leafGreen,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    alignSelf: 'center',
-    shadowColor: COLORS.darkGreen,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  viewMapText: {
-    color: COLORS.white,
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    backgroundColor: COLORS.darkGreen,
-    padding: 8,
-    borderRadius: 20,
-  },
-  routeDetailsOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 40,
-    maxHeight: '40%',
-    borderTopWidth: 4,
-    borderTopColor: COLORS.leafGreen,
-  },
-  loader: {
-    marginVertical: 20,
-  },
-  dropdownContainer: {
-    position: 'absolute',
-    top: 45,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.white,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.darkGreen,
-    padding: 5,
-    zIndex: 10,
-    shadowColor: COLORS.darkGreen,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowRadius: 8,
     elevation: 4,
   },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 4,
+  inputGroup: {
+    marginBottom: 20,
   },
-  selectedDropdownItem: {
-    backgroundColor: COLORS.leafGreen,
-  },
-  dropdownItemText: {
-    color: COLORS.darkGreen,
-  },
-  selectedDropdownItemText: {
-    color: COLORS.white,
-    fontWeight: '500',
-  },
-  routeSummary: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 15,
-    backgroundColor: COLORS.paleGreen,
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.leafGreen,
-  },
-  routeSummaryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  routeSummaryText: {
-    marginLeft: 5,
-    color: COLORS.darkGreen,
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  mapDataInfoContainer: {
-    backgroundColor: COLORS.paleGreen,
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: COLORS.leafGreen,
-    alignItems: 'center',
-  },
-  mapDataInfoText: {
-    fontSize: 14,
-    color: COLORS.darkGreen,
-    fontWeight: '500',
-    marginBottom: 5,
-  },
-  editMapRouteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 5,
-  },
-  editMapRouteText: {
-    color: COLORS.darkGreen,
-    marginLeft: 5,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
-  },
-  chooseOnMapButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.darkGreen,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  chooseOnMapText: {
-    color: COLORS.white,
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  mapRouteSummary: {
-    backgroundColor: COLORS.paleGreen,
-    borderRadius: 10,
-    padding: 12,
-    marginVertical: 15,
-    borderWidth: 1,
-    borderColor: COLORS.leafGreen,
-  },
-  mapRouteTitle: {
-    fontSize: 18,
-    color: COLORS.darkGreen,
-    fontWeight: '600',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  mapRouteDetailRow: {
+  labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
-  mapRouteDetail: {
-    color: COLORS.soil,
-    fontSize: 14,
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
     marginLeft: 8,
-    fontWeight: '500',
+  },
+  input: {
+    backgroundColor: COLORS.cardBackground,
+    borderWidth: 1,
+    borderColor: COLORS.inputBorder,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    color: COLORS.text,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  halfInput: {
+    flex: 0.48,
+  },
+  inputText: {
+    fontSize: 16,
+    color: COLORS.text,
+  },
+  placeholderText: {
+    color: COLORS.textLight,
+  },
+  suggestedPlaces: {
+    paddingHorizontal: 16,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  placesList: {
+    gap: 12,
+  },
+  placeCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  placeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  placeInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  placeHeader: {
+    marginBottom: 8,
+  },
+  placeNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  placeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    flex: 1,
+  },
+  placeDistance: {
+    fontSize: 14,
+    color: COLORS.textLight,
+    marginLeft: 8,
+  },
+  placeTime: {
+    fontSize: 14,
+    color: COLORS.textLight,
   },
   placeDescription: {
-    color: COLORS.soil,
     fontSize: 14,
-    marginTop: 8,
+    color: COLORS.textLight,
     lineHeight: 20,
   },
-  placeEntryFee: {
-    color: COLORS.leafGreen,
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  dropdownCard: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 16,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  dropdownItem: {
+    padding: 16,
+    borderRadius: 8,
+  },
+  selectedDropdownItem: {
+    backgroundColor: 'rgba(124, 58, 237, 0.1)',
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: COLORS.text,
+  },
+  selectedDropdownText: {
+    color: COLORS.purple,
+    fontWeight: '600',
+  },
+  planButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  planButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  travelPlanSection: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  travelPlanCard: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  planHeader: {
+    marginBottom: 12,
+  },
+  planTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  planMetadata: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  planMetadataDot: {
+    color: COLORS.textLight,
+    marginHorizontal: 8,
+  },
+  planTravelers: {
+    fontSize: 16,
+    color: COLORS.textLight,
+  },
+  budgetContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  budgetInfo: {
+    alignItems: 'center',
+  },
+  budgetLabel: {
     fontSize: 14,
+    color: COLORS.textLight,
+    marginBottom: 4,
+  },
+  budgetAmount: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  itineraryContainer: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.inputBorder,
+    paddingTop: 16,
+  },
+  itineraryTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  dayContainer: {
+    marginBottom: 20,
+  },
+  dayTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 12,
+    backgroundColor: 'rgba(124, 58, 237, 0.1)',
+    padding: 8,
+    borderRadius: 8,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  activityTimeContainer: {
+    width: 60,
+    marginRight: 12,
+  },
+  activityTime: {
+    fontSize: 14,
+    color: COLORS.textLight,
     fontWeight: '500',
   },
-  noPlacesText: {
-    color: COLORS.soil,
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 20,
+  activityContent: {
+    flex: 1,
+  },
+  activityText: {
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  ecoTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(104, 211, 145, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  ecoTagText: {
+    fontSize: 12,
+    color: COLORS.leafGreen,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  activityMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 8,
+  },
+  activityCost: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  dayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  dayTotal: {
+    fontSize: 14,
+    color: COLORS.textLight,
+    fontWeight: '500',
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  activityType: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  activityTypeText: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    marginLeft: 4,
+    textTransform: 'capitalize',
+  },
+  tipsContainer: {
+    marginBottom: 20,
+  },
+  tipsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    paddingRight: 8,
+  },
+  tipText: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+  transportInfo: {
+    marginTop: 8,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 8,
+    padding: 8,
+  },
+  transportHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  transportMode: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    marginLeft: 4,
+    textTransform: 'capitalize',
+  },
+  transportDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingLeft: 20,
+  },
+  transportDuration: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  transportCost: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    fontWeight: '500',
   },
 })

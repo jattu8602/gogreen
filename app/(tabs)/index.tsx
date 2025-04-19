@@ -1315,6 +1315,8 @@ export default function TabOneScreen() {
             <Text style={styles.routeInfoTitle}>{routeInfo}</Text>
             <TouchableOpacity
               style={styles.closeButton}
+            <TouchableOpacity
+              style={styles.closeButton}
               onPress={() => {
                 setRouteDetails(null);
                 setRouteCoordinates([]);

@@ -12,17 +12,27 @@ const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 export type TravelPlan = {
   city: string
   duration: string
+  budget: string
+  travelers: string
   ecoFriendlyTips: string[]
-  co2Saved: number
   itinerary: {
     day: number
     activities: {
       time: string
       activity: string
       ecoFriendly: boolean
-      co2Impact: number
+      cost: string
+      type: string // e.g., 'accommodation', 'food', 'activity', 'transport'
+      transportInfo?: {
+        mode: string
+        duration: string
+        cost: string
+      }
     }[]
+    dailyTotal: string
   }[]
+  totalCost: string
+  transportationTotal: string
 }
 
 // Define route plan type
@@ -68,26 +78,31 @@ export type NearbyPlace = {
 // Function to generate a travel plan using Gemini
 export async function generateTravelPlan(
   city: string,
-  duration: number
+  duration: number,
+  budget: string,
+  travelers: string
 ): Promise<{ text: string; travelPlan?: TravelPlan }> {
   try {
     // Create a prompt for the Gemini API
     const prompt = `
-      Create an eco-friendly travel plan for ${duration} days in ${city}.
+      Create a budget-conscious travel plan for ${duration} days in ${city} for ${travelers} traveler(s) with a maximum budget of ${budget}.
       Include:
       1. A day-by-day itinerary with specific activities and times
-      2. Eco-friendly transportation options
-      3. Sustainable accommodation recommendations
-      4. Local, sustainable food options
-      5. Estimated CO2 emissions saved compared to conventional travel
-      6. Specific eco-friendly tips for this destination
+      2. Activities suitable for the group size (${travelers} people)
+      3. Detailed cost breakdown for each activity, staying within ${budget} total
+      4. Transportation costs and modes between locations
+      5. Mix of free and paid activities
+      6. Budget-friendly accommodation options
+      7. Affordable local food recommendations
+      8. Eco-friendly tips specific to the destination
 
       Format the response as a JSON object with the following structure:
       {
         "city": "${city}",
         "duration": "${duration} days",
+        "budget": "${budget}",
+        "travelers": "${travelers}",
         "ecoFriendlyTips": ["tip1", "tip2", "tip3", "tip4", "tip5"],
-        "co2Saved": number (in kg),
         "itinerary": [
           {
             "day": 1,
@@ -96,14 +111,41 @@ export async function generateTravelPlan(
                 "time": "HH:MM",
                 "activity": "description",
                 "ecoFriendly": true/false,
-                "co2Impact": number (in kg)
+                "cost": "exact cost",
+                "type": "accommodation/food/activity/transport",
+                "transportInfo": {
+                  "mode": "bus/train/taxi/walk",
+                  "duration": "X mins/hours",
+                  "cost": "exact cost"
+                }
               }
-            ]
+            ],
+            "dailyTotal": "total cost for the day"
           }
-        ]
+        ],
+        "totalCost": "total trip cost",
+        "transportationTotal": "total transportation cost"
       }
 
-      Also provide a friendly, conversational summary of the travel plan that highlights the eco-friendly aspects and CO2 savings.
+      Make sure to:
+      1. Keep total costs under the specified budget of ${budget}
+      2. Include transportation costs between all locations
+      3. Suggest budget-friendly transport options
+      4. Include local public transport where available
+      5. Account for group size in transport costs
+      6. Consider peak/off-peak timing for transport
+      7. Include walking for short distances
+      8. Add transport duration estimates
+
+      For transportation between locations:
+      1. Specify the mode of transport
+      2. Include the cost per person/group
+      3. Estimate the duration
+      4. Prefer eco-friendly options when available
+      5. Consider local transport passes or day tickets
+      6. Include waiting/buffer time in schedules
+
+      Ensure all costs (activities, accommodation, food, and transport) stay within the specified budget.
     `
 
     // Generate content using Gemini
