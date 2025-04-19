@@ -93,8 +93,6 @@ export default function TravelPlannerScreen() {
   const [showTravellersDropdown, setShowTravellersDropdown] = useState(false)
   const [loading, setLoading] = useState(false)
   const [travelPlan, setTravelPlan] = useState<TravelPlan | null>(null)
-  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([])
-  const insets = useSafeAreaInsets()
 
   // Function to handle trip planning
   const handlePlanTrip = async () => {
@@ -114,11 +112,6 @@ export default function TravelPlannerScreen() {
 
       if (result.travelPlan) {
         setTravelPlan(result.travelPlan)
-        // Also fetch nearby places
-        const nearbyResult = await findNearbyPlaces(destination)
-        if (nearbyResult.places) {
-          setNearbyPlaces(nearbyResult.places)
-        }
       }
     } catch (error) {
       console.error('Error planning trip:', error)
@@ -132,26 +125,31 @@ export default function TravelPlannerScreen() {
     <View style={styles.container}>
       <StatusBar style="light" />
 
+      {/* Background Gradient */}
+      <LinearGradient
+        colors={['#E0F2F7', '#B0E2FF']}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
+
       {/* Header */}
       <View style={styles.header}>
-        <LinearGradient
-          colors={[COLORS.primary, COLORS.secondary]}
-          style={StyleSheet.absoluteFill}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
+        <Image
+          source={require('../../assets/images/trip-planner.png')}
+          style={styles.headerBackground}
+          resizeMode="cover"
         />
-        <LinearGradient
-          colors={['rgba(255,255,255,0.2)', 'transparent']}
-          style={[StyleSheet.absoluteFill, styles.headerOverlay]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-        />
-        <View style={[styles.headerContent, { paddingTop: insets.top + 16 }]}>
-          <Text style={styles.headerTitle}>Travel Planner</Text>
-          <TouchableOpacity style={styles.avatarButton}>
-            <Text style={styles.avatarText}>A</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <TouchableOpacity style={styles.avatarButton}>
+              <Text style={styles.avatarText}>A</Text>
           </TouchableOpacity>
       </View>
+          <View style={styles.titleContainer}>
+            <Text style={styles.headerTitle}>Travel Planner</Text>
+          </View>
+        </View>
       </View>
 
       {/* Content */}
@@ -161,7 +159,7 @@ export default function TravelPlannerScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Input Card */}
-        <View style={styles.card}>
+        <View style={[styles.card, styles.planCard]}>
           {/* Where to? */}
           <View style={styles.inputGroup}>
             <View style={styles.labelRow}>
@@ -231,7 +229,7 @@ export default function TravelPlannerScreen() {
 
           {/* Plan Trip Button */}
           <TouchableOpacity
-            style={styles.planButton}
+            style={[styles.planButton, loading && styles.planButtonDisabled]}
             onPress={handlePlanTrip}
             disabled={loading}
           >
@@ -247,7 +245,7 @@ export default function TravelPlannerScreen() {
         {travelPlan && (
           <View style={styles.travelPlanSection}>
             <Text style={styles.sectionTitle}>Your Travel Plan</Text>
-            <View style={styles.travelPlanCard}>
+            <View style={[styles.card, styles.travelPlanCard]}>
               <View style={styles.planHeader}>
                 <Text style={styles.planTitle}>{travelPlan.city}</Text>
                 <View style={styles.planMetadata}>
@@ -348,45 +346,16 @@ export default function TravelPlannerScreen() {
             </View>
           </View>
         )}
-
-        {/* Nearby Places Section - Only shown after travel plan is generated */}
-        {nearbyPlaces.length > 0 && (
-          <View style={styles.suggestedPlaces}>
-            <Text style={styles.sectionTitle}>Nearby Places</Text>
-            <View style={styles.placesList}>
-              {nearbyPlaces.map((place, index) => (
-                <View key={index} style={styles.placeCard}>
-                  <View style={[styles.placeIcon, {
-                    backgroundColor: place.ecoFriendly ?
-                      'rgba(104, 211, 145, 0.1)' : 'rgba(246, 173, 85, 0.1)'
-                  }]}>
-                    <Ionicons
-                      name={place.ecoFriendly ? "leaf" : "location"}
-                      size={24}
-                      color={place.ecoFriendly ? "#68D391" : "#F6AD55"}
-                    />
-              </View>
-                  <View style={styles.placeInfo}>
-                    <View style={styles.placeHeader}>
-                      <View style={styles.placeNameContainer}>
-                        <Text style={styles.placeName}>{place.name}</Text>
-                        <Text style={styles.placeDistance}>{place.distance}</Text>
-          </View>
-                      <Text style={styles.placeTime}>{place.time}</Text>
-        </View>
-                    <Text style={styles.placeDescription} numberOfLines={2}>{place.description}</Text>
-      </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
       </ScrollView>
 
       {/* Travellers Dropdown Overlay */}
       {showTravellersDropdown && (
         <View style={styles.overlay}>
-          <View style={styles.dropdownCard}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowTravellersDropdown(false)}
+          />
+          <View style={[styles.card, styles.dropdownCard]}>
             {['1', '2', '3', '4', '5+'].map((num) => (
               <TouchableOpacity
                 key={num}
@@ -408,9 +377,9 @@ export default function TravelPlannerScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
-      )}
-    </View>
+              </View>
+            )}
+          </View>
   )
 }
 
@@ -453,32 +422,49 @@ function getTransportIcon(mode: string): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     height: 280,
     overflow: 'hidden',
+    position: 'relative',
+    zIndex: 1,
   },
-  headerOverlay: {
-    opacity: 0.5,
+  headerBackground: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   headerContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
     position: 'absolute',
-    top: 0,
+    top: 20,
+    right: 20,
+    zIndex: 2,
+  },
+  titleContainer: {
+    position: 'absolute',
+    top: '50%',
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    transform: [{ translateY: -20 }],
     alignItems: 'center',
-    paddingHorizontal: 20,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '700',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.1)',
-    textShadowOffset: { width: 0, height: 2 },
+    color: '#0077B6',
+    textAlign: 'center',
+    textShadowColor: 'rgba(255,255,255,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
+    letterSpacing: 0.5,
   },
   avatarButton: {
     width: 40,
@@ -489,6 +475,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   avatarText: {
     color: '#FFFFFF',
@@ -497,29 +488,38 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    marginTop: -60,
+    marginTop: -40,
+    position: 'relative',
+    zIndex: 2,
   },
   scrollContent: {
     paddingBottom: 32,
   },
   card: {
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 24,
+    backgroundColor: 'transparent',
     padding: 24,
     margin: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  planCard: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
   inputGroup: {
     marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 12,
+    padding: 12,
   },
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    paddingHorizontal: 4,
   },
   label: {
     fontSize: 16,
@@ -528,13 +528,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   input: {
-    backgroundColor: COLORS.cardBackground,
-    borderWidth: 1,
-    borderColor: COLORS.inputBorder,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderWidth: 0,
     padding: 12,
     fontSize: 16,
     color: COLORS.text,
+    borderRadius: 12,
   },
   row: {
     flexDirection: 'row',
@@ -564,17 +563,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   placeCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: 'transparent',
+    marginHorizontal: 0,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    padding: 16,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   placeIcon: {
     width: 48,
@@ -624,14 +619,12 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   dropdownCard: {
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     padding: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    borderWidth: 0,
   },
   dropdownItem: {
     padding: 16,
@@ -665,14 +658,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   travelPlanCard: {
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: 'transparent',
+    marginHorizontal: 0,
+    marginBottom: 20,
   },
   planHeader: {
     marginBottom: 12,
@@ -699,10 +687,11 @@ const styles = StyleSheet.create({
   budgetContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.03)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     padding: 16,
     borderRadius: 12,
     marginBottom: 20,
+    borderWidth: 0,
   },
   budgetInfo: {
     alignItems: 'center',
@@ -718,9 +707,8 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   itineraryContainer: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.inputBorder,
     paddingTop: 16,
+    borderTopWidth: 0,
   },
   itineraryTitle: {
     fontSize: 18,
@@ -764,11 +752,10 @@ const styles = StyleSheet.create({
   ecoTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(104, 211, 145, 0.1)',
+    backgroundColor: 'rgba(104, 211, 145, 0.15)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: 'flex-start',
   },
   ecoTagText: {
     fontSize: 12,
@@ -809,7 +796,7 @@ const styles = StyleSheet.create({
   activityType: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
@@ -844,9 +831,10 @@ const styles = StyleSheet.create({
   },
   transportInfo: {
     marginTop: 8,
-    backgroundColor: 'rgba(0,0,0,0.02)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 8,
     padding: 8,
+    borderWidth: 0,
   },
   transportHeader: {
     flexDirection: 'row',

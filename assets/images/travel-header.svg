@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="400" viewBox="0 0 800 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sky Background -->
+  <rect width="800" height="400" fill="#FFE4D6"/>
+
+  <!-- Mountains -->
+  <path d="M0 250L200 150L400 250L600 150L800 250V400H0V250Z" fill="#FFB74D" opacity="0.3"/>
+
+  <!-- Clouds -->
+  <path d="M650 100C650 100 670 80 700 80C730 80 750 100 750 100C750 100 770 80 800 80V120C800 120 770 140 750 120C750 120 730 140 700 140C670 140 650 120 650 120V100Z" fill="white" opacity="0.8"/>
+  <path d="M50 150C50 150 70 130 100 130C130 130 150 150 150 150C150 150 170 130 200 130V170C200 170 170 190 150 170C150 170 130 190 100 190C70 190 50 170 50 170V150Z" fill="white" opacity="0.8"/>
+
+  <!-- Main Suitcase -->
+  <g transform="translate(200, 150)">
+    <rect x="0" y="0" width="180" height="200" rx="20" fill="#FF7757"/>
+    <rect x="20" y="30" width="140" height="30" fill="#E65D35"/>
+    <rect x="20" y="90" width="140" height="30" fill="#E65D35"/>
+    <rect x="60" y="-15" width="60" height="25" rx="8" fill="#333333"/>
+  </g>
+
+  <!-- Location Pin -->
+  <g transform="translate(150, 200)">
+    <circle cx="0" cy="0" r="15" fill="#FF4444"/>
+    <path d="M-15 0C-15 -20 0 -40 15 0C30 40 15 20 15 0C15 -8.28427 8.28427 -15 0 -15C-8.28427 -15 -15 -8.28427 -15 0Z" fill="#FF4444"/>
+  </g>
+
+  <!-- Airplane -->
+  <g transform="translate(500, 100) rotate(-15)">
+    <path d="M0 0L120 -20L150 0L120 20L0 0Z" fill="white"/>
+    <circle cx="30" cy="0" r="10" fill="#333333"/>
+    <path d="M100 -10L130 0L100 10L80 0L100 -10Z" fill="#E6E6E6"/>
+  </g>
+</svg>
