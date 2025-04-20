@@ -338,11 +338,11 @@ export default function LeaderboardScreen() {
       'Choose a photo source',
       [
         {
-          text: 'Camera',
+          text: '📸 Take Photo',
           onPress: () => launchCamera(),
         },
         {
-          text: 'Gallery',
+          text: '🖼️ Choose from Gallery',
           onPress: () => launchGallery(),
         },
         {
@@ -560,21 +560,36 @@ export default function LeaderboardScreen() {
             <View style={styles.userProfileContainer}>
               <View style={styles.profileHeader}>
                 <TouchableOpacity
-                  style={styles.profilePhotoContainer}
+                  style={[
+                    styles.profilePhotoContainer,
+                    uploadingImage && styles.uploadingContainer,
+                  ]}
                   onPress={handleProfileUpload}
                   disabled={uploadingImage}
                 >
                   {uploadingImage ? (
-                    <ActivityIndicator size="small" color={COLORS.leafGreen} />
+                    <View style={styles.uploadingContent}>
+                      <ActivityIndicator size="large" color={COLORS.leafGreen} />
+                      <ThemedText style={styles.uploadingText}>
+                        Uploading...
+                      </ThemedText>
+                    </View>
                   ) : profileImage ? (
                     <Image
                       source={{ uri: profileImage }}
                       style={styles.userProfileImage}
                     />
                   ) : (
-                    <View style={styles.userProfileImagePlaceholder}>
-                      <Ionicons name="camera" size={24} color={COLORS.bark} />
-                      <ThemedText style={styles.uploadText}>Upload</ThemedText>
+                    <View style={styles.uploadPromptContainer}>
+                      <View style={styles.uploadIconContainer}>
+                        <Ionicons name="camera" size={32} color={COLORS.leafGreen} />
+                        <View style={styles.plusIconContainer}>
+                          <Ionicons name="add" size={16} color={COLORS.white} />
+                        </View>
+                      </View>
+                      <ThemedText style={styles.uploadText}>
+                        Add Photo
+                      </ThemedText>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -771,8 +786,8 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
+    paddingTop: 20,
+    paddingBottom: 10,
     backgroundColor: COLORS.lightestGreen,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(34, 197, 94, 0.2)',
@@ -781,11 +796,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+
     marginBottom: 12,
     paddingTop: 10,
   },
   headerTitle: {
-    fontSize: 26,
+
+    fontSize: 30,
     fontWeight: 'bold',
     color: COLORS.darkGreen,
   },
@@ -853,29 +870,71 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   profilePhotoContainer: {
-    height: 80,
-    width: 80,
-    borderRadius: 40,
+    height: 100,
+    width: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.paleGreen,
     borderWidth: 2,
     borderColor: COLORS.leafGreen,
     overflow: 'hidden',
+    shadowColor: COLORS.darkGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  uploadingContainer: {
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderStyle: 'dashed',
+  },
+  uploadingContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadingText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: COLORS.darkGreen,
+  },
+  uploadPromptContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadIconContainer: {
+    position: 'relative',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  plusIconContainer: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.leafGreen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  uploadText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.darkGreen,
+    marginTop: 4,
   },
   userProfileImage: {
     height: '100%',
     width: '100%',
-    borderRadius: 40,
-  },
-  userProfileImagePlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  uploadText: {
-    fontSize: 10,
-    color: COLORS.bark,
-    marginTop: 2,
+    borderRadius: 50,
   },
   profileInfo: {
     marginLeft: 16,

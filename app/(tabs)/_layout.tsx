@@ -13,6 +13,9 @@ const COLORS = {
   darkGreen: '#166534', // Darker green for secondary elements
   bark: '#854D0E', // Brown bark color for accents
   soil: '#FBFBFB', // Dark soil color for inactive items
+  warmGreen: '#4CAF50', // New warm green color
+  notificationGreen: '#8BC34A', // New notification green color
+  notificationBg: 'rgba(151, 195, 74, 0.1)', // Light notification background
 }
 
 // Custom background component for Android and other platforms
@@ -29,8 +32,10 @@ function CustomTabBackground() {
               : 'rgba(255, 255, 255, 0.9)',
           borderTopWidth: 1,
           borderTopColor: COLORS.darkGreen,
-          borderRadius: 15,
-          marginHorizontal: 20,
+          borderRadius: 35,
+          marginHorizontal: 0,
+          overflow: 'hidden',
+          width: '100%',
         },
       ]}
     />
@@ -49,31 +54,35 @@ export default function TabLayout() {
         tabBarButton: (props) => <HapticTab {...props} />,
         tabBarBackground:
           Platform.OS === 'ios'
-            ? undefined // Uses the platform-specific TabBarBackground.ios.tsx
+            ? undefined
             : () => <CustomTabBackground />,
         tabBarStyle: {
           position: 'absolute',
           borderTopWidth: 0,
           elevation: 0,
-          height: 65,
+          height: 70,
           borderRadius: 40,
-          marginHorizontal: 15,
+          marginHorizontal: 42,
           marginBottom: Platform.OS === 'ios' ? 20 : 10,
           shadowColor: COLORS.bark,
           shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.2,
-          shadowRadius: 5,
+          shadowOpacity: 0.5,
+          shadowRadius: 10,
           paddingBottom: 10,
+          backgroundColor: colorScheme === 'dark'
+            ? 'rgba(42, 46, 53, 0.9)'
+            : 'rgba(255, 255, 255, 0.9)',
+          width: '80%',
         },
         tabBarItemStyle: {
-          marginTop: 5,
+          marginTop: 7,
           marginBottom: 5,
           borderRadius: 30,
           marginHorizontal: 5,
         },
         tabBarLabelStyle: {
           fontWeight: '600',
-          fontSize: 12,
+          fontSize: 11,
         },
       }}
     >
@@ -118,6 +127,53 @@ export default function TabLayout() {
             ),
         }}
       />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Updates',
+          tabBarIcon: ({ color }) => (
+            <View style={styles.notificationIconContainer}>
+              <MaterialIcons name="notifications" size={24} color={color} />
+              <View style={styles.notificationBadge} />
+            </View>
+          ),
+        }}
+      />
     </Tabs>
   )
 }
+
+const styles = StyleSheet.create({
+  notificationIconContainer: {
+    position: 'relative',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.notificationBg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.notificationGreen,
+    shadowColor: COLORS.notificationGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.warmGreen,
+    borderWidth: 1,
+    borderColor: 'white',
+    shadowColor: COLORS.warmGreen,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+})

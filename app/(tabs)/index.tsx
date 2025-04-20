@@ -106,7 +106,78 @@ const COLORS = {
   paleGreen: 'rgba(34, 197, 94, 0.1)', // Transparent green for backgrounds
   white: '#FFFFFF', // White for contrast
   lightestGreen: '#DCFCE7', // Very light green for backgrounds
+  warmGreen: '#8BC34A', // New color for notifications
+  notificationBg: '#FFEBEE', // Background color for notification items
+  notificationGreen: '#4CAF50', // Green color for notification items
 }
+
+// Add notification types
+interface Notification {
+  id: string;
+  type: 'progress' | 'achievement' | 'suggestion' | 'update';
+  title: string;
+  message: string;
+  icon: string;
+  timestamp: Date;
+  read: boolean;
+}
+
+// Add notification templates
+const notificationTemplates: Array<{
+  type: 'progress' | 'achievement' | 'suggestion' | 'update';
+  title: string;
+  message: string;
+  icon: string;
+}> = [
+  {
+    type: 'progress',
+    title: '🌱 Green Milestone!',
+    message: 'You\'ve saved 5kg of CO₂ this week! Keep up the great work!',
+    icon: 'leaf',
+  },
+  {
+    type: 'suggestion',
+    title: '🚲 New Route Suggestion',
+    message: 'Try our new eco-friendly bike route to work. It\'s 15% greener!',
+    icon: 'bicycle',
+  },
+  {
+    type: 'achievement',
+    title: '🏆 Level Up!',
+    message: 'Congratulations! You\'ve reached Green Explorer level!',
+    icon: 'trophy',
+  },
+  {
+    type: 'update',
+    title: '✨ New Feature',
+    message: 'Check out our new carbon footprint calculator!',
+    icon: 'calculator',
+  },
+  {
+    type: 'progress',
+    title: '🌍 Environmental Impact',
+    message: 'Your eco-friendly choices have saved 10 trees this month!',
+    icon: 'tree',
+  },
+  {
+    type: 'suggestion',
+    title: '🌞 Weather Alert',
+    message: 'Perfect day for walking! Consider eco-friendly transportation.',
+    icon: 'sunny',
+  },
+  {
+    type: 'achievement',
+    title: '🎯 Daily Goal',
+    message: 'You\'re 80% closer to your weekly green points target!',
+    icon: 'target',
+  },
+  {
+    type: 'update',
+    title: '📊 Weekly Stats',
+    message: 'You\'ve reduced your carbon footprint by 25% this week!',
+    icon: 'stats-chart',
+  },
+];
 
 export default function TabOneScreen() {
   const webViewRef = useRef<WebView>(null)
@@ -155,6 +226,10 @@ export default function TabOneScreen() {
   const [hasNotifications, setHasNotifications] = useState(false);
   const searchAnimation = useRef(new Animated.Value(0)).current;
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Load saved route data from AsyncStorage on initial load
   useEffect(() => {
@@ -1184,10 +1259,12 @@ export default function TabOneScreen() {
 
   // Add this function to handle notifications
   const handleNotificationPress = () => {
-    Alert.alert(
-      'Notifications',
-      'No new notifications',
-      [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
+    setShowNotifications(true);
+    setHasUnreadNotifications(false);
+
+    // Mark all notifications as read
+    setNotifications(prev =>
+      prev.map(notification => ({ ...notification, read: true }))
     );
   };
 
@@ -1196,6 +1273,148 @@ export default function TabOneScreen() {
     // Just hide the route info card without clearing the route
     setRouteDetails(null);
   };
+
+  // Add notification generation function
+  const generateNotifications = () => {
+    const newNotifications: Notification[] = [
+      {
+        id: '1',
+        type: 'progress',
+        title: '🌱 Green Milestone!',
+        message: 'You\'ve saved 5kg of CO₂ this week! Keep up the great work!',
+        icon: 'leaf',
+        timestamp: new Date(),
+        read: false,
+      },
+      {
+        id: '2',
+        type: 'suggestion',
+        title: '🚲 New Route Suggestion',
+        message: 'Try our new eco-friendly bike route to work. It\'s 15% greener!',
+        icon: 'bicycle',
+        timestamp: new Date(),
+        read: false,
+      },
+      {
+        id: '3',
+        type: 'achievement',
+        title: '🏆 Level Up!',
+        message: 'Congratulations! You\'ve reached Green Explorer level!',
+        icon: 'trophy',
+        timestamp: new Date(),
+        read: false,
+      },
+      {
+        id: '4',
+        type: 'update',
+        title: '✨ New Feature',
+        message: 'Check out our new carbon footprint calculator!',
+        icon: 'calculator',
+        timestamp: new Date(),
+        read: false,
+      },
+    ];
+
+    setNotifications(newNotifications);
+    setHasUnreadNotifications(true);
+  };
+
+  // Add notification modal
+  const renderNotificationModal = () => (
+    <Modal
+      visible={showNotifications}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowNotifications(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.notificationModal}>
+          <View style={styles.notificationHeader}>
+            <Text style={styles.notificationTitle}>Your Updates</Text>
+            <TouchableOpacity
+              onPress={() => setShowNotifications(false)}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={24} color={COLORS.darkGreen} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.notificationList}>
+            {notifications.length > 0 ? (
+              notifications.map((notification) => (
+                <TouchableOpacity
+                  key={notification.id}
+                  style={[
+                    styles.notificationItem,
+                    !notification.read && styles.unreadNotification,
+                  ]}
+                >
+                  <View style={styles.notificationIcon}>
+                    <Ionicons
+                      name={notification.icon as any}
+                      size={24}
+                      color={COLORS.warmGreen}
+                    />
+                  </View>
+                  <View style={styles.notificationContent}>
+                    <Text style={styles.notificationItemTitle}>
+                      {notification.title}
+                    </Text>
+                    <Text style={styles.notificationItemMessage}>
+                      {notification.message}
+                    </Text>
+                    <Text style={styles.notificationTime}>
+                      {notification.timestamp.toLocaleTimeString()}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.emptyNotifications}>
+                <Ionicons name="notifications-off" size={48} color={COLORS.notificationGreen} />
+                <Text style={styles.emptyNotificationsText}>No updates yet</Text>
+                <Text style={styles.emptyNotificationsSubtext}>
+                  Check back later for eco-friendly tips and updates!
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // Add this useEffect for notification generation
+  useEffect(() => {
+    const generateRandomNotification = () => {
+      const template = notificationTemplates[Math.floor(Math.random() * notificationTemplates.length)];
+      const newNotification: Notification = {
+        id: Date.now().toString(),
+        type: template.type,
+        title: template.title,
+        message: template.message,
+        icon: template.icon,
+        timestamp: new Date(),
+        read: false,
+      };
+
+      setNotifications(prev => [newNotification, ...prev]);
+      setHasUnreadNotifications(true);
+    };
+
+    // Generate first notification immediately
+    generateRandomNotification();
+
+    // Set up timer for notifications every 10 minutes
+    const timer = setInterval(generateRandomNotification, 10 * 60 * 1000);
+    notificationTimer.current = timer;
+
+    // Cleanup on unmount
+    return () => {
+      if (notificationTimer.current) {
+        clearInterval(notificationTimer.current);
+      }
+    };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -1245,8 +1464,12 @@ export default function TabOneScreen() {
           onPress={handleNotificationPress}
         >
           <View style={styles.notificationIconContainer}>
-            <Ionicons name="notifications" size={24} color={COLORS.bark} />
-            {hasNotifications && <View style={styles.notificationBadge} />}
+            <Ionicons
+              name="notifications"
+              size={24}
+              color={hasUnreadNotifications ? COLORS.warmGreen : COLORS.notificationGreen}
+            />
+            {hasUnreadNotifications && <View style={styles.notificationBadge} />}
           </View>
         </TouchableOpacity>
       )}
@@ -1653,6 +1876,8 @@ export default function TabOneScreen() {
           </View>
         </View>
       )}
+
+      {renderNotificationModal()}
     </View>
   )
 }
@@ -1725,11 +1950,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 193, 7, 0.1)', // Light yellow background
+    backgroundColor: COLORS.notificationBg,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.bark,
+    borderColor: COLORS.notificationGreen,
+    shadowColor: COLORS.notificationGreen,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   notificationBadge: {
     position: 'absolute',
@@ -1738,9 +1968,14 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FF4444',
+    backgroundColor: COLORS.warmGreen,
     borderWidth: 1,
     borderColor: 'white',
+    shadowColor: COLORS.warmGreen,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 2,
   },
   searchButton: {
     backgroundColor: '#22C55E',
@@ -2550,5 +2785,86 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-  }
+  },
+  notificationModal: {
+    width: '90%',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  notificationTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+  },
+  notificationList: {
+    maxHeight: '80%',
+  },
+  notificationItem: {
+    flexDirection: 'row',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: 'white',
+  },
+  unreadNotification: {
+    backgroundColor: COLORS.notificationBg,
+  },
+  notificationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(195, 74, 74, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  notificationContent: {
+    flex: 1,
+  },
+  notificationItemTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+    marginBottom: 4,
+  },
+  notificationItemMessage: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  notificationTime: {
+    fontSize: 12,
+    color: '#999',
+  },
+  emptyNotifications: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    marginTop: 40,
+  },
+  emptyNotificationsText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.darkGreen,
+    marginTop: 16,
+  },
+  emptyNotificationsSubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+  },
 })
