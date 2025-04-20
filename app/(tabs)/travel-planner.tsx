@@ -135,6 +135,7 @@ export default function TravelPlannerScreen() {
   // Function to handle sidebar navigation
   const handleNavigation = (section: string) => {
     setShowSidebar(false);
+    console.log('Navigating to:', section);
     switch (section) {
       case 'profile':
         setShowProfileModal(true);
@@ -143,12 +144,15 @@ export default function TravelPlannerScreen() {
         setShowMerchandiseModal(true);
         break;
       case 'about':
+        console.log('Setting about modal to true');
         setShowAboutModal(true);
         break;
       case 'contact':
+        console.log('Setting contact modal to true');
         setShowContactModal(true);
         break;
       case 'support':
+        console.log('Setting support modal to true');
         setShowSupportModal(true);
         break;
     }
@@ -232,7 +236,7 @@ export default function TravelPlannerScreen() {
               </View>
               <TextInput
                 style={styles.input}
-                placeholder="Enter amount"
+                placeholder="Amount per person "
                 value={budget}
                 onChangeText={setBudget}
                 keyboardType="numeric"
@@ -435,7 +439,7 @@ export default function TravelPlannerScreen() {
                     <Ionicons name="shirt" size={24} color={COLORS.iconOrange} />
                   </View>
                   <View style={styles.menuTextContainer}>
-                    <Text style={styles.menuTitle}>Merchandise</Text>
+                    <Text style={styles.menuTitle}>Eco-Store</Text>
                     <Text style={styles.menuDescription}>Explore eco-friendly products</Text>
                   </View>
                 </View>
@@ -877,33 +881,26 @@ export default function TravelPlannerScreen() {
               <View style={styles.aboutSection}>
                 <Text style={styles.aboutTitle}>Our Mission</Text>
                 <Text style={styles.aboutText}>
-                  GoGreen is dedicated to making travel more sustainable and environmentally conscious.
-                  We believe that exploring our beautiful planet shouldn't come at its expense.
+                  At GoGreen, we're on a mission to transform the way people travel by making sustainable choices accessible and rewarding. Founded in 2022 by a team of environmental enthusiasts and tech innovators, we believe that every journey can be an opportunity to make a positive impact on our planet.
                 </Text>
 
                 <Text style={styles.aboutTitle}>What We Do</Text>
                 <Text style={styles.aboutText}>
-                  • Help travelers plan eco-friendly trips{'\n'}
-                  • Calculate and minimize carbon footprints{'\n'}
-                  • Promote sustainable transportation options{'\n'}
-                  • Connect users with green initiatives
+                  • Smart Eco-Routing: Our AI-powered navigation system suggests the most environmentally friendly routes and transportation options{'\n'}
+                  • Carbon Footprint Tracking: Real-time calculation of CO2 emissions for every trip{'\n'}
+                  • Green Rewards: Earn points for sustainable choices and redeem them for eco-friendly products{'\n'}
+                  • Community Impact: Partnering with local businesses to promote sustainable tourism
                 </Text>
 
-                <Text style={styles.aboutTitle}>Impact</Text>
-                <View style={styles.impactStats}>
-                  <View style={styles.impactItem}>
-                    <Text style={styles.impactValue}>50K+</Text>
-                    <Text style={styles.impactLabel}>Green Trips</Text>
-                  </View>
-                  <View style={styles.impactItem}>
-                    <Text style={styles.impactValue}>100T</Text>
-                    <Text style={styles.impactLabel}>CO₂ Saved</Text>
-                  </View>
-                  <View style={styles.impactItem}>
-                    <Text style={styles.impactValue}>20K+</Text>
-                    <Text style={styles.impactLabel}>Users</Text>
-                  </View>
-                </View>
+                <Text style={styles.aboutTitle}>Our Team</Text>
+                <Text style={styles.aboutText}>
+                  Our diverse team of 25 professionals includes environmental scientists, software engineers, and sustainability experts. We're headquartered in San Francisco with remote team members across 12 countries, united by our passion for sustainable travel.
+                </Text>
+
+                <Text style={styles.aboutTitle}>Partnerships</Text>
+                <Text style={styles.aboutText}>
+                  We collaborate with leading environmental organizations, including the World Wildlife Fund and The Nature Conservancy, to ensure our impact extends beyond individual travel choices.
+                </Text>
               </View>
             </ScrollView>
           </View>
@@ -932,6 +929,7 @@ export default function TravelPlannerScreen() {
                   <View style={styles.contactInfo}>
                     <Text style={styles.contactLabel}>Email</Text>
                     <Text style={styles.contactValue}>support@gogreen.eco</Text>
+                    <Text style={styles.contactSubtext}>Response time: Within 24 hours</Text>
                   </View>
                 </View>
 
@@ -939,20 +937,31 @@ export default function TravelPlannerScreen() {
                   <Ionicons name="call" size={24} color={COLORS.leafGreen} />
                   <View style={styles.contactInfo}>
                     <Text style={styles.contactLabel}>Phone</Text>
-                    <Text style={styles.contactValue}>+1 (555) 123-4567</Text>
+                    <Text style={styles.contactValue}>+1 (415) 555-0123</Text>
+                    <Text style={styles.contactSubtext}>Mon-Fri: 9AM-6PM PST</Text>
                   </View>
                 </View>
 
                 <View style={styles.contactMethod}>
                   <Ionicons name="location" size={24} color={COLORS.leafGreen} />
                   <View style={styles.contactInfo}>
-                    <Text style={styles.contactLabel}>Address</Text>
-                    <Text style={styles.contactValue}>123 Green Street{'\n'}Eco City, EC 12345</Text>
+                    <Text style={styles.contactLabel}>Headquarters</Text>
+                    <Text style={styles.contactValue}>123 Green Street{'\n'}San Francisco, CA 94105</Text>
+                    <Text style={styles.contactSubtext}>By appointment only</Text>
+                  </View>
+                </View>
+
+                <View style={styles.contactMethod}>
+                  <Ionicons name="business" size={24} color={COLORS.leafGreen} />
+                  <View style={styles.contactInfo}>
+                    <Text style={styles.contactLabel}>Partnership Inquiries</Text>
+                    <Text style={styles.contactValue}>partners@gogreen.eco</Text>
+                    <Text style={styles.contactSubtext}>For business collaborations</Text>
                   </View>
                 </View>
 
                 <View style={styles.socialLinks}>
-                  <Text style={styles.socialTitle}>Follow Us</Text>
+                  <Text style={styles.socialTitle}>Connect With Us</Text>
                   <View style={styles.socialButtons}>
                     <TouchableOpacity style={styles.socialButton}>
                       <Ionicons name="logo-twitter" size={24} color={COLORS.leafGreen} />
@@ -961,7 +970,7 @@ export default function TravelPlannerScreen() {
                       <Ionicons name="logo-instagram" size={24} color={COLORS.leafGreen} />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.socialButton}>
-                      <Ionicons name="logo-facebook" size={24} color={COLORS.leafGreen} />
+                      <Ionicons name="logo-linkedin" size={24} color={COLORS.leafGreen} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -991,16 +1000,36 @@ export default function TravelPlannerScreen() {
                 <Text style={styles.supportTitle}>Frequently Asked Questions</Text>
                 {[
                   {
-                    question: 'How do I plan an eco-friendly trip?',
-                    answer: 'Use our travel planner to input your destination and preferences. We\'ll suggest sustainable transportation options and environmentally conscious activities.'
+                    question: 'How does GoGreen calculate carbon emissions?',
+                    answer: 'We use a sophisticated algorithm that considers multiple factors including distance, vehicle type, fuel efficiency, and occupancy rates. Our calculations are based on data from the Environmental Protection Agency and verified by independent environmental consultants.'
                   },
                   {
-                    question: 'How are green points calculated?',
-                    answer: 'Green points are awarded based on your eco-friendly choices, such as using public transport, choosing sustainable accommodations, and participating in environmental activities.'
+                    question: 'What makes a route "eco-friendly"?',
+                    answer: 'Our eco-friendly routes consider factors like traffic congestion, road conditions, and available public transportation options. We prioritize routes that minimize fuel consumption and emissions while maintaining reasonable travel times.'
                   },
                   {
-                    question: 'Can I offset my travel emissions?',
-                    answer: 'Yes! We partner with verified carbon offset programs. You can calculate your trip\'s carbon footprint and choose offset projects to support.'
+                    question: 'How are Green Points calculated?',
+                    answer: 'Points are awarded based on the environmental impact of your travel choices. For example, walking earns 50 points, cycling 45 points, and public transport 35-40 points. The exact calculation considers distance, time, and the specific mode of transportation.'
+                  },
+                  {
+                    question: 'Can I use GoGreen internationally?',
+                    answer: 'Yes! We currently support navigation and eco-routing in over 50 countries. Our database includes public transportation systems, bike-sharing programs, and walking paths in major cities worldwide.'
+                  },
+                  {
+                    question: 'How do I redeem my Green Points?',
+                    answer: 'Points can be redeemed in our Eco Store for sustainable products, local business vouchers, or donated to environmental causes. Each redemption option shows the required points and environmental impact.'
+                  },
+                  {
+                    question: 'What are Achievement Badges?',
+                    answer: 'Badges are special rewards for completing eco-friendly milestones. You can earn badges like "Footprint Reducer", "Walk the Change", and "Climate Hero" by making sustainable travel choices and reducing your carbon footprint.'
+                  },
+                  {
+                    question: 'How do I claim Achievement Badges?',
+                    answer: 'Badges are automatically awarded when you reach specific milestones. For example, walking 100km unlocks the "Eco-Walker" badge, while reducing your carbon emissions by 1 ton earns the "Carbon Cutter" badge.'
+                  },
+                  {
+                    question: 'What are the benefits of earning badges?',
+                    answer: 'Badges showcase your environmental commitment and can unlock special rewards, including bonus Green Points, exclusive discounts at eco-friendly businesses, and recognition on the leaderboard.'
                   }
                 ].map((faq, index) => (
                   <View key={index} style={styles.faqItem}>
@@ -1009,10 +1038,17 @@ export default function TravelPlannerScreen() {
                   </View>
                 ))}
 
-                <TouchableOpacity style={styles.supportButton}>
-                  <Ionicons name="chatbubbles-outline" size={20} color={COLORS.white} />
-                  <Text style={styles.supportButtonText}>Start Live Chat</Text>
-                </TouchableOpacity>
+                <View style={styles.supportOptions}>
+                  <Text style={styles.supportOptionsTitle}>Additional Support</Text>
+                  <TouchableOpacity style={styles.supportButton}>
+                    <Ionicons name="chatbubbles-outline" size={20} color={COLORS.white} />
+                    <Text style={styles.supportButtonText}>Live Chat Support</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.supportButton, { backgroundColor: COLORS.primary }]}>
+                    <Ionicons name="mail-outline" size={20} color={COLORS.white} />
+                    <Text style={styles.supportButtonText}>Email Support</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </ScrollView>
           </View>
@@ -1067,16 +1103,20 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     zIndex: 1,
+    marginBottom: 40,
   },
   headerBackground: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
+    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 30,
   },
   headerContent: {
     flex: 1,
     paddingHorizontal: 20,
     justifyContent: 'center',
+
   },
   headerTop: {
     flexDirection: 'row',
@@ -1133,6 +1173,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 32,
+    // backgroundColor: 'red',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+
   },
   card: {
     backgroundColor: 'transparent',
@@ -1779,6 +1823,15 @@ const styles = StyleSheet.create({
     color: COLORS.textLight,
     lineHeight: 20,
   },
+  supportOptions: {
+    marginTop: 24,
+  },
+  supportOptionsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.darkGreen,
+    marginBottom: 16,
+  },
   supportButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2082,5 +2135,10 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  contactSubtext: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    marginTop: 4,
   },
 })
