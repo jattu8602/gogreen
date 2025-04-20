@@ -18,6 +18,7 @@ import {
   Platform,
   SafeAreaView,
   Modal,
+  TextInput,
 } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { Ionicons } from '@expo/vector-icons'
@@ -30,6 +31,8 @@ import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
 import { useFocusEffect } from '@react-navigation/native'
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 // Import Firebase services
 import {
@@ -40,7 +43,6 @@ import {
   getUserById,
   createOrUpdateUser,
 } from '@/lib/userService'
-import { uploadImageToCloudinary } from '@/lib/cloudinary'
 
 // Define tree-themed colors
 const COLORS = {
@@ -70,6 +72,9 @@ export default function LeaderboardScreen() {
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
   const [userEcoCoins, setUserEcoCoins] = useState(0);
   const [showCoinInfo, setShowCoinInfo] = useState(false);
+  const [isEditingUsername, setIsEditingUsername] = useState(false)
+  const [newUsername, setNewUsername] = useState('')
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false)
 
   // Initialize user data when signed in
   useEffect(() => {
@@ -124,17 +129,22 @@ export default function LeaderboardScreen() {
     initializeUserData();
   }, [isSignedIn, user]);
 
-  // Load profile image from AsyncStorage
+  // Load profile image from AsyncStorage and Clerk
   useEffect(() => {
     const loadProfileImage = async () => {
       if (isSignedIn && user) {
         try {
+          // First try to get from Clerk
+          if (user.imageUrl) {
+            setProfileImage(user.imageUrl)
+            await AsyncStorage.setItem(PROFILE_IMAGE_KEY, user.imageUrl)
+            return
+          }
+
+          // Then try AsyncStorage
           const storedImageUrl = await AsyncStorage.getItem(PROFILE_IMAGE_KEY)
           if (storedImageUrl) {
             setProfileImage(storedImageUrl)
-          } else if (user.imageUrl) {
-            setProfileImage(user.imageUrl)
-            await AsyncStorage.setItem(PROFILE_IMAGE_KEY, user.imageUrl)
           }
         } catch (error) {
           console.error('Error loading profile image:', error)
@@ -144,6 +154,13 @@ export default function LeaderboardScreen() {
 
     loadProfileImage()
   }, [isSignedIn, user])
+
+  // Add this effect to update profile image when user changes
+  useEffect(() => {
+    if (isSignedIn && user && user.imageUrl) {
+      setProfileImage(user.imageUrl)
+    }
+  }, [isSignedIn, user?.imageUrl])
 
   // Fetch leaderboard data
   const fetchLeaderboard = async () => {
@@ -411,26 +428,54 @@ export default function LeaderboardScreen() {
     try {
       setUploadingImage(true)
 
-      // Upload to Cloudinary
-      console.log('Uploading to Cloudinary...')
+      // Upload to Clerk
+      console.log('Uploading to Clerk...')
       const userUUID = getUUIDFromClerkID(user.id)
-      const { secure_url } = await uploadImageToCloudinary(imageUri, userUUID)
 
-      console.log('File uploaded successfully:', secure_url)
+      // Read the image file
+      const imageInfo = await FileSystem.getInfoAsync(imageUri)
+      if (!imageInfo.exists) {
+        throw new Error('Image file does not exist')
+      }
+
+      // Create the file object for Clerk
+      const file = {
+        uri: imageUri,
+        name: `profile-${userUUID}-${Date.now()}.jpg`,
+        type: 'image/jpeg',
+      }
+
+      // Upload to Clerk
+      await user.setProfileImage({
+        file
+      })
+
+      // Get the updated user data to get the new image URL
+      const updatedUser = await user.reload()
+      const imageUrl = updatedUser.imageUrl
+
+      if (!imageUrl) {
+        throw new Error('Failed to get image URL after upload')
+      }
+
+      console.log('File uploaded successfully:', imageUrl)
 
       // Update local state
-      setProfileImage(secure_url)
+      setProfileImage(imageUrl)
 
       // Save to AsyncStorage
-      await AsyncStorage.setItem(PROFILE_IMAGE_KEY, secure_url)
+      await AsyncStorage.setItem(PROFILE_IMAGE_KEY, imageUrl)
 
       // Update Firebase
-      await updateUserProfileImage(userUUID, secure_url)
+      await updateUserProfileImage(userUUID, imageUrl)
 
       // Update user rank if exists
       if (userRank) {
-        setUserRank({ ...userRank, profile_url: secure_url })
+        setUserRank({ ...userRank, profile_url: imageUrl })
       }
+
+      // Force a leaderboard refresh to update the UI
+      fetchLeaderboard()
 
       Alert.alert('Success', 'Profile photo updated successfully')
     } catch (error: any) {
@@ -481,6 +526,77 @@ export default function LeaderboardScreen() {
     }
   }, [userRank]);
 
+  // Add this function to check username uniqueness
+  const checkUsernameAvailability = async (username: string) => {
+    try {
+      const usersRef = collection(db, 'users')
+      const q = query(usersRef, where('username', '==', username))
+      const querySnapshot = await getDocs(q)
+      return querySnapshot.empty // true if username is available
+    } catch (error) {
+      console.error('Error checking username:', error)
+      return false
+    }
+  }
+
+  // Add this function to handle username update
+  const handleUsernameUpdate = async () => {
+    if (!isSignedIn || !user) return
+
+    try {
+      setIsCheckingUsername(true)
+
+      // Trim whitespace and convert to lowercase for consistency
+      const trimmedUsername = newUsername.trim().toLowerCase()
+
+      // Basic validation
+      if (trimmedUsername.length < 3) {
+        Alert.alert('Invalid Username', 'Username must be at least 3 characters long')
+        return
+      }
+
+      if (trimmedUsername.length > 20) {
+        Alert.alert('Invalid Username', 'Username must be less than 20 characters')
+        return
+      }
+
+      // Check if username is available
+      const isAvailable = await checkUsernameAvailability(trimmedUsername)
+      if (!isAvailable) {
+        Alert.alert('Username Taken', 'This username is already taken. Please choose another one.')
+        return
+      }
+
+      // Update username in Clerk
+      await user.update({
+        username: trimmedUsername
+      })
+
+      // Update username in Firebase
+      const userUUID = getUUIDFromClerkID(user.id)
+      const userRef = doc(db, 'users', userUUID)
+      await updateDoc(userRef, {
+        username: trimmedUsername
+      })
+
+      // Update local state
+      if (userRank) {
+        setUserRank({ ...userRank, username: trimmedUsername })
+      }
+
+      // Refresh leaderboard
+      fetchLeaderboard()
+
+      setIsEditingUsername(false)
+      Alert.alert('Success', 'Username updated successfully')
+    } catch (error) {
+      console.error('Error updating username:', error)
+      Alert.alert('Error', 'Failed to update username. Please try again.')
+    } finally {
+      setIsCheckingUsername(false)
+    }
+  }
+
   // Render a user item in the leaderboard
   const renderUserItem = ({ item }: { item: UserData }) => {
     const isCurrentUser = isSignedIn && user && item.id === getUUIDFromClerkID(user.id)
@@ -511,6 +627,65 @@ export default function LeaderboardScreen() {
         <View style={[styles.scoreContainer, isCurrentUser && styles.currentUserScore]}>
           <ThemedText style={styles.scoreText}>{item.green_score}</ThemedText>
         </View>
+      </View>
+    )
+  }
+
+  // Add this to your JSX where the username is displayed
+  const renderUsernameSection = () => {
+    if (isEditingUsername) {
+      return (
+        <View style={styles.usernameEditContainer}>
+          <TextInput
+            style={styles.usernameInput}
+            value={newUsername}
+            onChangeText={setNewUsername}
+            placeholder="Enter new username"
+            placeholderTextColor={COLORS.soil}
+            autoCapitalize="none"
+            autoCorrect={false}
+            maxLength={20}
+          />
+          <View style={styles.usernameEditButtons}>
+            <TouchableOpacity
+              style={[styles.usernameButton, styles.cancelButton]}
+              onPress={() => {
+                setIsEditingUsername(false)
+                setNewUsername('')
+              }}
+            >
+              <ThemedText style={styles.usernameButtonText}>Cancel</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.usernameButton, styles.saveButton]}
+              onPress={handleUsernameUpdate}
+              disabled={isCheckingUsername}
+            >
+              {isCheckingUsername ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <ThemedText style={styles.usernameButtonText}>Save</ThemedText>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      )
+    }
+
+    return (
+      <View style={styles.usernameDisplayContainer}>
+        <ThemedText style={styles.userNameTitle}>
+          {user?.username || user?.fullName || 'Green User'}
+        </ThemedText>
+        <TouchableOpacity
+          style={styles.editUsernameButton}
+          onPress={() => {
+            setNewUsername(user?.username || '')
+            setIsEditingUsername(true)
+          }}
+        >
+          <Ionicons name="pencil" size={16} color={COLORS.leafGreen} />
+        </TouchableOpacity>
       </View>
     )
   }
@@ -595,9 +770,7 @@ export default function LeaderboardScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.profileInfo}>
-                  <ThemedText style={styles.userNameTitle}>
-                    {user?.username || user?.fullName || 'Green User'}
-                  </ThemedText>
+                  {renderUsernameSection()}
 
                   <ThemedText style={styles.greenScoreText}>
                     Your Green Score
@@ -1327,6 +1500,45 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.darkGreen,
     marginRight: 4,
+  },
+  usernameEditContainer: {
+    marginBottom: 8,
+  },
+  usernameInput: {
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: COLORS.leafGreen,
+    color: COLORS.darkGreen,
+    fontSize: 16,
+  },
+  usernameEditButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+    gap: 8,
+  },
+  usernameButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  usernameButtonText: {
+    color: COLORS.white,
+    fontWeight: '600',
+  },
+  usernameDisplayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editUsernameButton: {
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: COLORS.lightestGreen,
   },
 })
 
