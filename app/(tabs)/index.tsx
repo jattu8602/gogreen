@@ -58,6 +58,7 @@ interface RouteDetails {
   batteryUsage?: string
   recommendedVehicles?: VehicleRecommendation[]
   selectedVehicle?: VehicleRecommendation
+  price?: string // Add price to interface
 }
 
 // TomTom routing type mapping
@@ -178,6 +179,55 @@ const notificationTemplates: Array<{
     icon: 'stats-chart',
   },
 ];
+
+// Add price calculation function
+const calculateTripPrice = (distance: number, vehicle: string): string => {
+  const distanceKm = distance;
+  let basePrice = 0;
+  let pricePerKm = 0;
+
+  switch (vehicle) {
+    case 'walk':
+      return 'Free';
+    case 'cycle':
+      return 'Free';
+    case 'bike':
+      return 'Free';
+    case 'rickshaw':
+      basePrice = 20;
+      pricePerKm = 8;
+      break;
+    case 'auto':
+      basePrice = 25;
+      pricePerKm = 10;
+      break;
+    case 'car':
+      basePrice = 50;
+      pricePerKm = 15;
+      break;
+    case 'taxi':
+      basePrice = 60;
+      pricePerKm = 18;
+      break;
+    case 'bus':
+      basePrice = 10;
+      pricePerKm = 2;
+      break;
+    case 'metro':
+      basePrice = 20;
+      pricePerKm = 3;
+      break;
+    case 'train':
+      basePrice = 30;
+      pricePerKm = 4;
+      break;
+    default:
+      return 'Price not available';
+  }
+
+  const totalPrice = basePrice + (distanceKm * pricePerKm);
+  return `₹${Math.round(totalPrice)}`;
+};
 
 export default function TabOneScreen() {
   const webViewRef = useRef<WebView>(null)
@@ -889,6 +939,7 @@ export default function TabOneScreen() {
       `Distance: ${routeDetails?.distance || 'Unknown'}\n` +
       `Estimated Time: ${routeDetails?.duration || 'Unknown'}\n` +
       `CO₂ Emission: ${routeDetails?.co2Emission || 'Unknown'}\n` +
+      `Estimated Cost: ${routeDetails?.price || 'Unknown'}\n` +
       (selectedVehicle?.vehicle === 'car' &&
       routeDetails?.batteryUsage !== 'N/A'
         ? `Battery Usage: ${routeDetails?.batteryUsage}\n\n`
@@ -902,6 +953,7 @@ export default function TabOneScreen() {
         `• The route follows main roads with moderate traffic\n` +
         `• You may encounter traffic signals at major intersections\n` +
         `• CO₂ emission for this trip is estimated at ${routeDetails?.co2Emission}\n` +
+        `• Estimated cost for this trip: ${routeDetails?.price}\n` +
         (selectedVehicle?.vehicle === 'car'
           ? `• Electric vehicle battery usage: approximately ${routeDetails?.batteryUsage}\n\n`
           : '\n') +
@@ -1024,41 +1076,42 @@ export default function TabOneScreen() {
 
     setLoading(true);
     setRouteError(false);
+    setRouteSaved(false);
+    setEarnedPoints(null);
 
     try {
       const routeType = getTomTomRouteType(selectedOptions.type);
-      // Use car as default for finding route
-      const vehicleType = 'car'
+      const vehicleType = 'car';
 
-      const url = `https://api.tomtom.com/routing/1/calculateRoute/${startLocation.latitude},${startLocation.longitude}:${endLocation.latitude},${endLocation.longitude}/json?key=${TOMTOM_API_KEY}&routeType=${routeType}&vehicleHeading=90&sectionType=traffic&report=effectiveSettings&routeRepresentation=polyline&computeTravelTimeFor=all&traffic=true&travelMode=${vehicleType}`
+      const url = `https://api.tomtom.com/routing/1/calculateRoute/${startLocation.latitude},${startLocation.longitude}:${endLocation.latitude},${endLocation.longitude}/json?key=${TOMTOM_API_KEY}&routeType=${routeType}&vehicleHeading=90&sectionType=traffic&report=effectiveSettings&routeRepresentation=polyline&computeTravelTimeFor=all&traffic=true&travelMode=${vehicleType}`;
 
-      const response = await fetch(url)
-      const data = await response.json()
+      const response = await fetch(url);
+      const data = await response.json();
 
       if (data.routes && data.routes.length > 0) {
-        const route = data.routes[0]
-
+        const route = data.routes[0];
         const coordinates: Location[] = route.legs.flatMap((leg: any) =>
           leg.points.map((point: any) => ({
             latitude: point.latitude,
             longitude: point.longitude,
           }))
-        )
+        );
 
-        setRouteCoordinates(coordinates)
+        setRouteCoordinates(coordinates);
 
-        const summary = route.summary
-        const distanceKm = (summary.lengthInMeters / 1000).toFixed(1)
-        const durationMin = Math.round(summary.travelTimeInSeconds / 60)
+        const summary = route.summary;
+        const distanceKm = (summary.lengthInMeters / 1000).toFixed(1);
+        const durationMin = Math.round(summary.travelTimeInSeconds / 60);
 
-        // Generate vehicle recommendations based on distance
-        const distanceNumber = parseFloat(distanceKm)
-        const recommendations = determineRecommendedVehicles(distanceNumber)
-        setRecommendedVehicles(recommendations)
+        const distanceNumber = parseFloat(distanceKm);
+        const recommendations = determineRecommendedVehicles(distanceNumber);
+        setRecommendedVehicles(recommendations);
 
-        // Set first recommendation as default
-        const defaultVehicle = recommendations[0]
-        setSelectedVehicle(defaultVehicle)
+        const defaultVehicle = recommendations[0];
+        setSelectedVehicle(defaultVehicle);
+
+        // Calculate price for the default vehicle
+        const tripPrice = calculateTripPrice(distanceNumber, defaultVehicle.vehicle);
 
         setRouteDetails({
           distance: `${distanceKm} km`,
@@ -1066,11 +1119,10 @@ export default function TabOneScreen() {
           co2Emission: defaultVehicle.co2Emission,
           recommendedVehicles: recommendations,
           selectedVehicle: defaultVehicle,
-        })
+          price: tripPrice,
+        });
 
-        setRouteInfo(
-          `${selectedOptions.type} route (${defaultVehicle.vehicle})`
-        )
+        setRouteInfo(`${selectedOptions.type} route (${defaultVehicle.vehicle})`);
 
         const geoJson = {
           type: 'FeatureCollection',
@@ -1087,47 +1139,49 @@ export default function TabOneScreen() {
               properties: {},
             },
           ],
-        }
+        };
 
         webViewRef.current?.injectJavaScript(
           `displayRoute(${JSON.stringify(geoJson)}); true;`
-        )
+        );
       } else {
-        throw new Error('No route found between these locations')
+        throw new Error('No route found between these locations');
       }
     } catch (error) {
-      console.error('Error finding route:', error)
-      setRouteError(true)
-
-      // Set a user-friendly error message
+      console.error('Error finding route:', error);
+      setRouteError(true);
       if (error instanceof Error) {
         if (error.message.includes('No route found')) {
-          setErrorMessage('No route found between these locations')
+          setErrorMessage('No route found between these locations');
         } else {
-          setErrorMessage('Unable to calculate a route right now')
+          setErrorMessage('Unable to calculate a route right now');
         }
       } else {
-        setErrorMessage('Something went wrong with route calculation')
+        setErrorMessage('Something went wrong with route calculation');
       }
     } finally {
-      setLoading(false)
-      setShowOptions(false)
+      setLoading(false);
+      setShowOptions(false);
     }
-  }
+  };
 
   const selectVehicle = (vehicle: VehicleRecommendation) => {
-    setSelectedVehicle(vehicle)
+    setSelectedVehicle(vehicle);
 
     if (routeDetails) {
+      const distanceNumber = parseFloat(routeDetails.distance.replace(' km', ''));
+      const tripPrice = calculateTripPrice(distanceNumber, vehicle.vehicle);
+
       setRouteDetails({
         ...routeDetails,
         co2Emission: vehicle.co2Emission,
         selectedVehicle: vehicle,
-      })
+        price: tripPrice,
+      });
     }
 
-    setRouteInfo(`${selectedOptions.type} route (${vehicle.vehicle})`)
-  }
+    setRouteInfo(`${selectedOptions.type} route (${vehicle.vehicle})`);
+  };
 
   const saveRouteData = async () => {
     if (
@@ -1534,6 +1588,9 @@ export default function TabOneScreen() {
           </Text>
           <Text style={styles.routeInfoDetail}>
             CO₂ Emission: {routeDetails.co2Emission}
+          </Text>
+          <Text style={styles.routeInfoDetail}>
+            Estimated Cost: {routeDetails.price}
           </Text>
 
           {routeSaved && earnedPoints && (
