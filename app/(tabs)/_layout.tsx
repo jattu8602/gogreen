@@ -18,7 +18,7 @@ const COLORS = {
   notificationBg: 'rgba(151, 195, 74, 0.1)', // Light notification background
 }
 
-// Custom background component for Android and other platforms
+// Custom background component for all platforms
 function CustomTabBackground() {
   const colorScheme = useColorScheme()
   return (
@@ -28,8 +28,8 @@ function CustomTabBackground() {
         {
           backgroundColor:
             colorScheme === 'dark'
-              ? 'rgba(42, 46, 53, 0.9)'
-              : 'rgba(255, 255, 255, 0.9)',
+              ? 'rgba(42, 46, 53, 0.98)'
+              : 'rgba(255, 255, 255, 0.98)',
           borderTopWidth: 1,
           borderTopColor: COLORS.darkGreen,
           borderRadius: 35,
@@ -49,13 +49,10 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: COLORS.leafGreen,
-        tabBarInactiveTintColor: COLORS.soil,
+        tabBarInactiveTintColor: colorScheme === 'dark' ? '#888888' : '#666666',
         headerShown: false,
         tabBarButton: (props) => <HapticTab {...props} />,
-        tabBarBackground:
-          Platform.OS === 'ios'
-            ? undefined
-            : () => <CustomTabBackground />,
+        tabBarBackground: () => <CustomTabBackground />,
         tabBarStyle: {
           position: 'absolute',
           borderTopWidth: 0,
@@ -69,10 +66,16 @@ export default function TabLayout() {
           shadowOpacity: 0.5,
           shadowRadius: 10,
           paddingBottom: 10,
-          backgroundColor: colorScheme === 'dark'
-            ? 'rgba(42, 46, 53, 0.9)'
-            : 'rgba(255, 255, 255, 0.9)',
+          backgroundColor:
+            colorScheme === 'dark'
+              ? 'rgba(42, 46, 53, 0.98)'
+              : 'rgba(255, 255, 255, 0.98)',
           width: '80%',
+          borderWidth: 1,
+          borderColor:
+            colorScheme === 'dark'
+              ? 'rgba(80, 80, 80, 0.3)'
+              : 'rgba(200, 200, 200, 0.8)',
         },
         tabBarItemStyle: {
           marginTop: 7,

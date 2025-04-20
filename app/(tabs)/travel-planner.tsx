@@ -602,6 +602,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     justifyContent: 'center',
+    // backgroundColor: 'red',
+    marginTop: 50,
+    marginRight: 20,
+
 
   },
   headerTop: {
