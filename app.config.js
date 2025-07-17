@@ -6,6 +6,7 @@ module.exports = {
   icon: './assets/images/icon.png',
   scheme: 'gogreen',
   userInterfaceStyle: 'automatic',
+  newArchEnabled: true,
   splash: {
     image: './assets/images/splash-icon.png',
     resizeMode: 'contain',
@@ -17,9 +18,6 @@ module.exports = {
     bundleIdentifier: 'com.gogreen.app',
   },
   android: {
-    compileSdkVersion: 34,
-    targetSdkVersion: 34,
-    buildToolsVersion: '34.0.0',
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#ffffff',
@@ -32,7 +30,7 @@ module.exports = {
     output: 'static',
     favicon: './assets/images/favicon.png',
   },
-  plugins: ['expo-router'],
+  plugins: ['expo-router', 'expo-secure-store'],
   experiments: {
     typedRoutes: true,
   },
@@ -41,7 +39,7 @@ module.exports = {
       origin: false,
     },
     eas: {
-      projectId: '0dc8bee1-3bfc-480d-a0a2-6a5b89a5adbb',
+      projectId: 'f6877db4-7ef3-47bb-8f6b-97befc73c5b6',
     },
   },
 }
