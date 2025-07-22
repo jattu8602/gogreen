@@ -114,38 +114,38 @@ const COLORS = {
 
 // Add notification types
 interface Notification {
-  id: string;
-  type: 'progress' | 'achievement' | 'suggestion' | 'update';
-  title: string;
-  message: string;
-  icon: string;
-  timestamp: Date;
-  read: boolean;
+  id: string
+  type: 'progress' | 'achievement' | 'suggestion' | 'update'
+  title: string
+  message: string
+  icon: string
+  timestamp: Date
+  read: boolean
 }
 
 // Add notification templates
 const notificationTemplates: Array<{
-  type: 'progress' | 'achievement' | 'suggestion' | 'update';
-  title: string;
-  message: string;
-  icon: string;
+  type: 'progress' | 'achievement' | 'suggestion' | 'update'
+  title: string
+  message: string
+  icon: string
 }> = [
   {
     type: 'progress',
     title: '🌱 Green Milestone!',
-    message: 'You\'ve saved 5kg of CO₂ this week! Keep up the great work!',
+    message: "You've saved 5kg of CO₂ this week! Keep up the great work!",
     icon: 'leaf',
   },
   {
     type: 'suggestion',
     title: '🚲 New Route Suggestion',
-    message: 'Try our new eco-friendly bike route to work. It\'s 15% greener!',
+    message: "Try our new eco-friendly bike route to work. It's 15% greener!",
     icon: 'bicycle',
   },
   {
     type: 'achievement',
     title: '🏆 Level Up!',
-    message: 'Congratulations! You\'ve reached Green Explorer level!',
+    message: "Congratulations! You've reached Green Explorer level!",
     icon: 'trophy',
   },
   {
@@ -169,65 +169,65 @@ const notificationTemplates: Array<{
   {
     type: 'achievement',
     title: '🎯 Daily Goal',
-    message: 'You\'re 80% closer to your weekly green points target!',
+    message: "You're 80% closer to your weekly green points target!",
     icon: 'target',
   },
   {
     type: 'update',
     title: '📊 Weekly Stats',
-    message: 'You\'ve reduced your carbon footprint by 25% this week!',
+    message: "You've reduced your carbon footprint by 25% this week!",
     icon: 'stats-chart',
   },
-];
+]
 
 // Add price calculation function
 const calculateTripPrice = (distance: number, vehicle: string): string => {
-  const distanceKm = distance;
-  let basePrice = 0;
-  let pricePerKm = 0;
+  const distanceKm = distance
+  let basePrice = 0
+  let pricePerKm = 0
 
   switch (vehicle) {
     case 'walk':
-      return 'Free';
+      return 'Free'
     case 'cycle':
-      return 'Free';
+      return 'Free'
     case 'bike':
-      return 'Free';
+      return 'Free'
     case 'rickshaw':
-      basePrice = 20;
-      pricePerKm = 8;
-      break;
+      basePrice = 20
+      pricePerKm = 8
+      break
     case 'auto':
-      basePrice = 25;
-      pricePerKm = 10;
-      break;
+      basePrice = 25
+      pricePerKm = 10
+      break
     case 'car':
-      basePrice = 50;
-      pricePerKm = 15;
-      break;
+      basePrice = 50
+      pricePerKm = 15
+      break
     case 'taxi':
-      basePrice = 60;
-      pricePerKm = 18;
-      break;
+      basePrice = 60
+      pricePerKm = 18
+      break
     case 'bus':
-      basePrice = 10;
-      pricePerKm = 2;
-      break;
+      basePrice = 10
+      pricePerKm = 2
+      break
     case 'metro':
-      basePrice = 20;
-      pricePerKm = 3;
-      break;
+      basePrice = 20
+      pricePerKm = 3
+      break
     case 'train':
-      basePrice = 30;
-      pricePerKm = 4;
-      break;
+      basePrice = 30
+      pricePerKm = 4
+      break
     default:
-      return 'Price not available';
+      return 'Price not available'
   }
 
-  const totalPrice = basePrice + (distanceKm * pricePerKm);
-  return `₹${Math.round(totalPrice)}`;
-};
+  const totalPrice = basePrice + distanceKm * pricePerKm
+  return `₹${Math.round(totalPrice)}`
+}
 
 export default function TabOneScreen() {
   const webViewRef = useRef<WebView>(null)
@@ -259,12 +259,12 @@ export default function TabOneScreen() {
   const [routeSaved, setRouteSaved] = useState(false)
   const [earnedPoints, setEarnedPoints] = useState<number | null>(null)
   const [savedRouteHistory, setSavedRouteHistory] = useState<{
-    startLocation: Location | null;
-    endLocation: Location | null;
-    routeDetails: RouteDetails | null;
-    selectedVehicle: VehicleRecommendation | null;
-    routeInfo: string;
-    earnedPoints: number | null;
+    startLocation: Location | null
+    endLocation: Location | null
+    routeDetails: RouteDetails | null
+    selectedVehicle: VehicleRecommendation | null
+    routeInfo: string
+    earnedPoints: number | null
   } | null>(null)
   const [routeError, setRouteError] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -272,33 +272,35 @@ export default function TabOneScreen() {
   const [achievementPoints, setAchievementPoints] = useState(0)
   const [showResetMarkersModal, setShowResetMarkersModal] = useState(false)
   const [showResetRouteModal, setShowResetRouteModal] = useState(false)
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [hasNotifications, setHasNotifications] = useState(false);
-  const searchAnimation = useRef(new Animated.Value(0)).current;
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const notificationTimer = useRef<NodeJS.Timeout | null>(null);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
+  const [hasNotifications, setHasNotifications] = useState(false)
+  const searchAnimation = useRef(new Animated.Value(0)).current
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  )
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const notificationTimer = useRef<NodeJS.Timeout | null>(null)
 
   // Load saved route data from AsyncStorage on initial load
   useEffect(() => {
     const loadSavedRouteData = async () => {
       try {
-        const savedRouteData = await AsyncStorage.getItem('SAVED_ROUTE_DATA');
+        const savedRouteData = await AsyncStorage.getItem('SAVED_ROUTE_DATA')
         if (savedRouteData) {
-          const parsedData = JSON.parse(savedRouteData);
+          const parsedData = JSON.parse(savedRouteData)
           // Restore saved route state
           if (parsedData.routeSaved) {
-            setRouteSaved(true);
-            setEarnedPoints(parsedData.earnedPoints);
-            setStartLocation(parsedData.startLocation);
-            setEndLocation(parsedData.endLocation);
-            setRouteDetails(parsedData.routeDetails);
-            setSelectedVehicle(parsedData.selectedVehicle);
-            setRouteInfo(parsedData.routeInfo);
-            setRouteCoordinates(parsedData.routeCoordinates);
-            setSelectedOptions(parsedData.selectedOptions);
+            setRouteSaved(true)
+            setEarnedPoints(parsedData.earnedPoints)
+            setStartLocation(parsedData.startLocation)
+            setEndLocation(parsedData.endLocation)
+            setRouteDetails(parsedData.routeDetails)
+            setSelectedVehicle(parsedData.selectedVehicle)
+            setRouteInfo(parsedData.routeInfo)
+            setRouteCoordinates(parsedData.routeCoordinates)
+            setSelectedOptions(parsedData.selectedOptions)
 
             // Wait for the WebView to initialize before drawing the route
             setTimeout(() => {
@@ -307,18 +309,21 @@ export default function TabOneScreen() {
                 if (parsedData.startLocation) {
                   webViewRef.current.injectJavaScript(
                     `addStartMarker(${parsedData.startLocation.latitude}, ${parsedData.startLocation.longitude}); true;`
-                  );
+                  )
                 }
 
                 // Add end marker
                 if (parsedData.endLocation) {
                   webViewRef.current.injectJavaScript(
                     `addEndMarker(${parsedData.endLocation.latitude}, ${parsedData.endLocation.longitude}); true;`
-                  );
+                  )
                 }
 
                 // Draw the route line
-                if (parsedData.routeCoordinates && parsedData.routeCoordinates.length > 0) {
+                if (
+                  parsedData.routeCoordinates &&
+                  parsedData.routeCoordinates.length > 0
+                ) {
                   const geoJson = {
                     type: 'FeatureCollection',
                     features: [
@@ -326,31 +331,33 @@ export default function TabOneScreen() {
                         type: 'Feature',
                         geometry: {
                           type: 'LineString',
-                          coordinates: parsedData.routeCoordinates.map((coord: Location) => [
-                            coord.longitude,
-                            coord.latitude,
-                          ]),
+                          coordinates: parsedData.routeCoordinates.map(
+                            (coord: Location) => [
+                              coord.longitude,
+                              coord.latitude,
+                            ]
+                          ),
                         },
                         properties: {},
                       },
                     ],
-                  };
+                  }
 
                   webViewRef.current.injectJavaScript(
                     `displayRoute(${JSON.stringify(geoJson)}); true;`
-                  );
+                  )
                 }
               }
-            }, 1000); // Give the map a second to initialize
+            }, 1000) // Give the map a second to initialize
           }
         }
       } catch (error) {
-        console.error('Error loading saved route data:', error);
+        console.error('Error loading saved route data:', error)
       }
-    };
+    }
 
-    loadSavedRouteData();
-  }, []);
+    loadSavedRouteData()
+  }, [])
 
   useEffect(() => {
     ;(async () => {
@@ -369,13 +376,39 @@ export default function TabOneScreen() {
         )
       }
 
-      let location = await Location.getCurrentPositionAsync({})
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+        timeInterval: 5000,
+        distanceInterval: 10,
+      })
       setUserLocation({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       })
 
       initMap(location.coords.latitude, location.coords.longitude)
+
+      // Set up location updates
+      const locationSubscription = Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 10000, // Update every 10 seconds
+          distanceInterval: 10, // Update if moved 10 meters
+        },
+        (location) => {
+          const newLocation = {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          }
+          updateUserLocation(newLocation.latitude, newLocation.longitude)
+        }
+      )
+
+      return () => {
+        if (locationSubscription) {
+          locationSubscription.then((subscription) => subscription.remove())
+        }
+      }
     })()
   }, [])
 
@@ -401,6 +434,14 @@ export default function TabOneScreen() {
         .marker { width: 30px; height: 30px; }
         .marker-start { background-color: green; border-radius: 50%; }
         .marker-end { background-color: red; border-radius: 50%; }
+        .marker-user {
+          width: 20px;
+          height: 20px;
+          background-color: #4285F4;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
         .touch-feedback { width: 40px; height: 40px; background-color: rgba(0,0,0,0.2); border-radius: 50%; position: absolute; }
         .error-overlay { position: absolute; top: 0; left: 0; right: 0; padding: 10px; background-color: rgba(255,0,0,0.7); color: white; font-size: 12px; z-index: 1000; }
       </style>
@@ -452,6 +493,7 @@ export default function TabOneScreen() {
         var map;
         var startMarker;
         var endMarker;
+        var userLocationMarker;
         var routeLayer;
 
         function initializeMap() {
@@ -473,11 +515,13 @@ export default function TabOneScreen() {
               key: apiKey,
               container: 'map',
               center: [${longitude}, ${latitude}],
-              zoom: 13
+              zoom: 18
             });
 
             map.on('load', function() {
               console.log('Map loaded successfully');
+              // Add user location marker immediately after map loads
+              addUserLocationMarker(${latitude}, ${longitude});
               window.ReactNativeWebView.postMessage(JSON.stringify({type: 'mapLoaded'}));
             });
 
@@ -516,6 +560,55 @@ export default function TabOneScreen() {
           } catch (error) {
             console.error('Error initializing map:', error);
             showError(error.message || 'Failed to initialize map');
+          }
+        }
+
+        function addUserLocationMarker(lat, lng) {
+          try {
+            if (!map) {
+              showError('Map not initialized');
+              return;
+            }
+
+            if (userLocationMarker) {
+              userLocationMarker.remove();
+            }
+
+            var el = document.createElement('div');
+            el.className = 'marker marker-user';
+
+            userLocationMarker = new tt.Marker({element: el})
+              .setLngLat([lng, lat])
+              .addTo(map);
+
+            // Notify React Native about success
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'userLocationMarkerAdded'
+            }));
+          } catch (error) {
+            showError('Failed to add user location marker: ' + error.message);
+          }
+        }
+
+        function updateUserLocation(lat, lng) {
+          try {
+            if (!map) {
+              showError('Map not initialized');
+              return;
+            }
+
+            if (userLocationMarker) {
+              userLocationMarker.setLngLat([lng, lat]);
+            } else {
+              addUserLocationMarker(lat, lng);
+            }
+
+            // Notify React Native about success
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'userLocationUpdated'
+            }));
+          } catch (error) {
+            showError('Failed to update user location: ' + error.message);
           }
         }
 
@@ -633,6 +726,8 @@ export default function TabOneScreen() {
               endMarker = null;
             }
 
+            // Note: We don't clear the user location marker as it should always be visible
+
             // Notify React Native about success
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'markersCleared',
@@ -694,7 +789,7 @@ export default function TabOneScreen() {
 
             map.fitBounds(bounds, {
               padding: {top: 50, bottom: 50, left: 50, right: 50},
-              maxZoom: 15
+              maxZoom: 20
             });
 
             // Notify React Native about success
@@ -715,7 +810,7 @@ export default function TabOneScreen() {
 
             map.flyTo({
               center: [lng, lat],
-              zoom: zoom || 15
+              zoom: zoom || 18
             });
 
             // Notify React Native about success
@@ -752,7 +847,41 @@ export default function TabOneScreen() {
   const recenterMap = () => {
     if (userLocation) {
       webViewRef.current?.injectJavaScript(
-        `centerOnLocation(${userLocation.latitude}, ${userLocation.longitude}, 13); true;`
+        `centerOnLocation(${userLocation.latitude}, ${userLocation.longitude}, 18); true;`
+      )
+    }
+  }
+
+  const updateUserLocation = (latitude: number, longitude: number) => {
+    setUserLocation({ latitude, longitude })
+    webViewRef.current?.injectJavaScript(
+      `updateUserLocation(${latitude}, ${longitude}); true;`
+    )
+  }
+
+  const getCurrentLocation = async () => {
+    try {
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 1000,
+        distanceInterval: 1,
+      })
+
+      const newLocation = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      }
+
+      updateUserLocation(newLocation.latitude, newLocation.longitude)
+      recenterMap()
+
+      return newLocation
+    } catch (error) {
+      console.error('Error getting current location:', error)
+      Alert.alert(
+        'Location Error',
+        'Unable to get your current location. Please check your location permissions.',
+        [{ text: 'OK' }]
       )
     }
   }
@@ -824,6 +953,10 @@ export default function TabOneScreen() {
         console.log('Route displayed successfully')
       } else if (data.type === 'mapCentered') {
         console.log('Map centered successfully')
+      } else if (data.type === 'userLocationMarkerAdded') {
+        console.log('User location marker added successfully')
+      } else if (data.type === 'userLocationUpdated') {
+        console.log('User location updated successfully')
       }
     } catch (error) {
       console.error('Error parsing WebView message:', error)
@@ -832,50 +965,51 @@ export default function TabOneScreen() {
 
   // Modify the search functionality
   const handleSearchInput = (text: string) => {
-    setSearchQuery(text);
+    setSearchQuery(text)
 
     // Clear any existing timeout
     if (searchTimeout) {
-      clearTimeout(searchTimeout);
+      clearTimeout(searchTimeout)
     }
 
     // Set new timeout for auto-search
     const timeout = setTimeout(() => {
-      if (text.trim().length > 2) { // Only search if more than 2 characters
-        searchLocation(text);
+      if (text.trim().length > 2) {
+        // Only search if more than 2 characters
+        searchLocation(text)
       } else {
-        setShowSearchResults(false);
+        setShowSearchResults(false)
       }
-    }, 500); // 500ms delay
+    }, 500) // 500ms delay
 
-    setSearchTimeout(timeout);
-  };
+    setSearchTimeout(timeout)
+  }
 
   const searchLocation = async (query: string) => {
-    if (!query.trim()) return;
+    if (!query.trim()) return
 
     try {
       const response = await fetch(
         `https://api.tomtom.com/search/2/search/${encodeURIComponent(
           query
         )}.json?key=${TOMTOM_API_KEY}`
-      );
+      )
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (data.results && data.results.length > 0) {
-        setSearchResults(data.results);
-        setShowSearchResults(true);
+        setSearchResults(data.results)
+        setShowSearchResults(true)
       }
     } catch (error) {
-      console.error('Error searching location:', error);
-      Alert.alert('Error', 'Failed to search for locations');
+      console.error('Error searching location:', error)
+      Alert.alert('Error', 'Failed to search for locations')
     }
-  };
+  }
 
   // Update the search results container to show below the search bar
   const renderSearchResults = () => {
-    if (!showSearchResults) return null;
+    if (!showSearchResults) return null
 
     return (
       <View style={[styles.searchResultsContainer, { top: 90 }]}>
@@ -896,8 +1030,8 @@ export default function TabOneScreen() {
           ))}
         </ScrollView>
       </View>
-    );
-  };
+    )
+  }
 
   const selectSearchResult = (result: any) => {
     const coordinate = {
@@ -1072,46 +1206,49 @@ export default function TabOneScreen() {
   }
 
   const findRoute = async () => {
-    if (!startLocation || !endLocation) return;
+    if (!startLocation || !endLocation) return
 
-    setLoading(true);
-    setRouteError(false);
-    setRouteSaved(false);
-    setEarnedPoints(null);
+    setLoading(true)
+    setRouteError(false)
+    setRouteSaved(false)
+    setEarnedPoints(null)
 
     try {
-      const routeType = getTomTomRouteType(selectedOptions.type);
-      const vehicleType = 'car';
+      const routeType = getTomTomRouteType(selectedOptions.type)
+      const vehicleType = 'car'
 
-      const url = `https://api.tomtom.com/routing/1/calculateRoute/${startLocation.latitude},${startLocation.longitude}:${endLocation.latitude},${endLocation.longitude}/json?key=${TOMTOM_API_KEY}&routeType=${routeType}&vehicleHeading=90&sectionType=traffic&report=effectiveSettings&routeRepresentation=polyline&computeTravelTimeFor=all&traffic=true&travelMode=${vehicleType}`;
+      const url = `https://api.tomtom.com/routing/1/calculateRoute/${startLocation.latitude},${startLocation.longitude}:${endLocation.latitude},${endLocation.longitude}/json?key=${TOMTOM_API_KEY}&routeType=${routeType}&vehicleHeading=90&sectionType=traffic&report=effectiveSettings&routeRepresentation=polyline&computeTravelTimeFor=all&traffic=true&travelMode=${vehicleType}`
 
-      const response = await fetch(url);
-      const data = await response.json();
+      const response = await fetch(url)
+      const data = await response.json()
 
       if (data.routes && data.routes.length > 0) {
-        const route = data.routes[0];
+        const route = data.routes[0]
         const coordinates: Location[] = route.legs.flatMap((leg: any) =>
           leg.points.map((point: any) => ({
             latitude: point.latitude,
             longitude: point.longitude,
           }))
-        );
+        )
 
-        setRouteCoordinates(coordinates);
+        setRouteCoordinates(coordinates)
 
-        const summary = route.summary;
-        const distanceKm = (summary.lengthInMeters / 1000).toFixed(1);
-        const durationMin = Math.round(summary.travelTimeInSeconds / 60);
+        const summary = route.summary
+        const distanceKm = (summary.lengthInMeters / 1000).toFixed(1)
+        const durationMin = Math.round(summary.travelTimeInSeconds / 60)
 
-        const distanceNumber = parseFloat(distanceKm);
-        const recommendations = determineRecommendedVehicles(distanceNumber);
-        setRecommendedVehicles(recommendations);
+        const distanceNumber = parseFloat(distanceKm)
+        const recommendations = determineRecommendedVehicles(distanceNumber)
+        setRecommendedVehicles(recommendations)
 
-        const defaultVehicle = recommendations[0];
-        setSelectedVehicle(defaultVehicle);
+        const defaultVehicle = recommendations[0]
+        setSelectedVehicle(defaultVehicle)
 
         // Calculate price for the default vehicle
-        const tripPrice = calculateTripPrice(distanceNumber, defaultVehicle.vehicle);
+        const tripPrice = calculateTripPrice(
+          distanceNumber,
+          defaultVehicle.vehicle
+        )
 
         setRouteDetails({
           distance: `${distanceKm} km`,
@@ -1120,9 +1257,11 @@ export default function TabOneScreen() {
           recommendedVehicles: recommendations,
           selectedVehicle: defaultVehicle,
           price: tripPrice,
-        });
+        })
 
-        setRouteInfo(`${selectedOptions.type} route (${defaultVehicle.vehicle})`);
+        setRouteInfo(
+          `${selectedOptions.type} route (${defaultVehicle.vehicle})`
+        )
 
         const geoJson = {
           type: 'FeatureCollection',
@@ -1139,49 +1278,51 @@ export default function TabOneScreen() {
               properties: {},
             },
           ],
-        };
+        }
 
         webViewRef.current?.injectJavaScript(
           `displayRoute(${JSON.stringify(geoJson)}); true;`
-        );
+        )
       } else {
-        throw new Error('No route found between these locations');
+        throw new Error('No route found between these locations')
       }
     } catch (error) {
-      console.error('Error finding route:', error);
-      setRouteError(true);
+      console.error('Error finding route:', error)
+      setRouteError(true)
       if (error instanceof Error) {
         if (error.message.includes('No route found')) {
-          setErrorMessage('No route found between these locations');
+          setErrorMessage('No route found between these locations')
         } else {
-          setErrorMessage('Unable to calculate a route right now');
+          setErrorMessage('Unable to calculate a route right now')
         }
       } else {
-        setErrorMessage('Something went wrong with route calculation');
+        setErrorMessage('Something went wrong with route calculation')
       }
     } finally {
-      setLoading(false);
-      setShowOptions(false);
+      setLoading(false)
+      setShowOptions(false)
     }
-  };
+  }
 
   const selectVehicle = (vehicle: VehicleRecommendation) => {
-    setSelectedVehicle(vehicle);
+    setSelectedVehicle(vehicle)
 
     if (routeDetails) {
-      const distanceNumber = parseFloat(routeDetails.distance.replace(' km', ''));
-      const tripPrice = calculateTripPrice(distanceNumber, vehicle.vehicle);
+      const distanceNumber = parseFloat(
+        routeDetails.distance.replace(' km', '')
+      )
+      const tripPrice = calculateTripPrice(distanceNumber, vehicle.vehicle)
 
       setRouteDetails({
         ...routeDetails,
         co2Emission: vehicle.co2Emission,
         selectedVehicle: vehicle,
         price: tripPrice,
-      });
+      })
     }
 
-    setRouteInfo(`${selectedOptions.type} route (${vehicle.vehicle})`);
-  };
+    setRouteInfo(`${selectedOptions.type} route (${vehicle.vehicle})`)
+  }
 
   const saveRouteData = async () => {
     if (
@@ -1192,12 +1333,12 @@ export default function TabOneScreen() {
       !endLocation ||
       !selectedVehicle
     )
-      return;
+      return
 
     try {
-      const distance = parseFloat(routeDetails.distance.replace(' km', ''));
-      const userUUID = getUUIDFromClerkID(user.id);
-      const greenPoints = selectedVehicle.greenScore;
+      const distance = parseFloat(routeDetails.distance.replace(' km', ''))
+      const userUUID = getUUIDFromClerkID(user.id)
+      const greenPoints = selectedVehicle.greenScore
 
       const routeData = {
         user_id: userUUID,
@@ -1207,18 +1348,20 @@ export default function TabOneScreen() {
         end_lng: endLocation.longitude,
         distance: distance,
         duration: routeDetails.duration,
-        co2_emission: parseFloat(selectedVehicle.co2Emission.replace(' kg', '')),
+        co2_emission: parseFloat(
+          selectedVehicle.co2Emission.replace(' kg', '')
+        ),
         vehicle_type: selectedVehicle.vehicle,
         route_type: selectedOptions.type,
         green_points: greenPoints,
-      };
+      }
 
-      await saveRoute(routeData);
+      await saveRoute(routeData)
 
-      setEarnedPoints(greenPoints);
-      setRouteSaved(true);
-      setAchievementPoints(greenPoints);
-      setShowAchievement(true);
+      setEarnedPoints(greenPoints)
+      setRouteSaved(true)
+      setAchievementPoints(greenPoints)
+      setShowAchievement(true)
 
       // Save complete route data to AsyncStorage
       const persistentRouteData = {
@@ -1230,10 +1373,13 @@ export default function TabOneScreen() {
         routeInfo,
         earnedPoints: greenPoints,
         routeCoordinates,
-        selectedOptions
-      };
+        selectedOptions,
+      }
 
-      await AsyncStorage.setItem('SAVED_ROUTE_DATA', JSON.stringify(persistentRouteData));
+      await AsyncStorage.setItem(
+        'SAVED_ROUTE_DATA',
+        JSON.stringify(persistentRouteData)
+      )
 
       setSavedRouteHistory({
         startLocation,
@@ -1241,23 +1387,23 @@ export default function TabOneScreen() {
         routeDetails,
         selectedVehicle,
         routeInfo,
-        earnedPoints: greenPoints
-      });
+        earnedPoints: greenPoints,
+      })
     } catch (error) {
-      console.error('Error saving route data:', error);
+      console.error('Error saving route data:', error)
       Alert.alert(
         'Save Failed',
         'There was an error saving your route data. Please try again.',
         [{ text: 'OK' }]
-      );
+      )
     }
-  };
+  }
 
   // Restore the resetMapMarkers function which was accidentally removed
   // Function to reset just the map markers without affecting route data
   const resetMapMarkers = () => {
     // Show custom modal instead of default Alert
-    setShowResetMarkersModal(true);
+    setShowResetMarkersModal(true)
   }
 
   // Function to handle actual reset of map markers
@@ -1272,61 +1418,58 @@ export default function TabOneScreen() {
           'try { clearMarkers(); } catch(e) { console.error("Error in clearMarkers:", e); } true;'
         )
         // Hide the modal after reset
-        setShowResetMarkersModal(false);
+        setShowResetMarkersModal(false)
       } catch (error) {
         console.error('Error resetting map markers:', error)
-        Alert.alert(
-          'Error',
-          'Failed to reset map markers. Please try again.'
-        )
-        setShowResetMarkersModal(false);
+        Alert.alert('Error', 'Failed to reset map markers. Please try again.')
+        setShowResetMarkersModal(false)
       }
     } else {
       Alert.alert(
         'Error',
         'Map is not initialized yet. Please wait a moment and try again.'
       )
-      setShowResetMarkersModal(false);
+      setShowResetMarkersModal(false)
     }
   }
 
   // Add this function to handle search animation
   const toggleSearch = () => {
-    setIsSearchExpanded(!isSearchExpanded);
+    setIsSearchExpanded(!isSearchExpanded)
     Animated.timing(searchAnimation, {
       toValue: isSearchExpanded ? 0 : 1,
       duration: 300,
       easing: Easing.bezier(0.4, 0, 0.2, 1),
       useNativeDriver: false,
-    }).start();
-  };
+    }).start()
+  }
 
   const collapseSearch = () => {
-    setIsSearchExpanded(false);
+    setIsSearchExpanded(false)
     Animated.timing(searchAnimation, {
       toValue: 0,
       duration: 300,
       easing: Easing.bezier(0.4, 0, 0.2, 1),
       useNativeDriver: false,
-    }).start();
-  };
+    }).start()
+  }
 
   // Add this function to handle notifications
   const handleNotificationPress = () => {
-    setShowNotifications(true);
-    setHasUnreadNotifications(false);
+    setShowNotifications(true)
+    setHasUnreadNotifications(false)
 
     // Mark all notifications as read
-    setNotifications(prev =>
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-  };
+    setNotifications((prev) =>
+      prev.map((notification) => ({ ...notification, read: true }))
+    )
+  }
 
   // Modify the routeInfoCard close button handler
   const handleCloseRoute = () => {
     // Just hide the route info card without clearing the route
-    setRouteDetails(null);
-  };
+    setRouteDetails(null)
+  }
 
   // Add notification generation function
   const generateNotifications = () => {
@@ -1335,7 +1478,7 @@ export default function TabOneScreen() {
         id: '1',
         type: 'progress',
         title: '🌱 Green Milestone!',
-        message: 'You\'ve saved 5kg of CO₂ this week! Keep up the great work!',
+        message: "You've saved 5kg of CO₂ this week! Keep up the great work!",
         icon: 'leaf',
         timestamp: new Date(),
         read: false,
@@ -1344,7 +1487,8 @@ export default function TabOneScreen() {
         id: '2',
         type: 'suggestion',
         title: '🚲 New Route Suggestion',
-        message: 'Try our new eco-friendly bike route to work. It\'s 15% greener!',
+        message:
+          "Try our new eco-friendly bike route to work. It's 15% greener!",
         icon: 'bicycle',
         timestamp: new Date(),
         read: false,
@@ -1353,7 +1497,7 @@ export default function TabOneScreen() {
         id: '3',
         type: 'achievement',
         title: '🏆 Level Up!',
-        message: 'Congratulations! You\'ve reached Green Explorer level!',
+        message: "Congratulations! You've reached Green Explorer level!",
         icon: 'trophy',
         timestamp: new Date(),
         read: false,
@@ -1367,11 +1511,11 @@ export default function TabOneScreen() {
         timestamp: new Date(),
         read: false,
       },
-    ];
+    ]
 
-    setNotifications(newNotifications);
-    setHasUnreadNotifications(true);
-  };
+    setNotifications(newNotifications)
+    setHasUnreadNotifications(true)
+  }
 
   // Add notification modal
   const renderNotificationModal = () => (
@@ -1424,8 +1568,14 @@ export default function TabOneScreen() {
               ))
             ) : (
               <View style={styles.emptyNotifications}>
-                <Ionicons name="notifications-off" size={48} color={COLORS.notificationGreen} />
-                <Text style={styles.emptyNotificationsText}>No updates yet</Text>
+                <Ionicons
+                  name="notifications-off"
+                  size={48}
+                  color={COLORS.notificationGreen}
+                />
+                <Text style={styles.emptyNotificationsText}>
+                  No updates yet
+                </Text>
                 <Text style={styles.emptyNotificationsSubtext}>
                   Check back later for eco-friendly tips and updates!
                 </Text>
@@ -1435,12 +1585,15 @@ export default function TabOneScreen() {
         </View>
       </View>
     </Modal>
-  );
+  )
 
   // Add this useEffect for notification generation
   useEffect(() => {
     const generateRandomNotification = () => {
-      const template = notificationTemplates[Math.floor(Math.random() * notificationTemplates.length)];
+      const template =
+        notificationTemplates[
+          Math.floor(Math.random() * notificationTemplates.length)
+        ]
       const newNotification: Notification = {
         id: Date.now().toString(),
         type: template.type,
@@ -1449,26 +1602,26 @@ export default function TabOneScreen() {
         icon: template.icon,
         timestamp: new Date(),
         read: false,
-      };
+      }
 
-      setNotifications(prev => [newNotification, ...prev]);
-      setHasUnreadNotifications(true);
-    };
+      setNotifications((prev) => [newNotification, ...prev])
+      setHasUnreadNotifications(true)
+    }
 
     // Generate first notification immediately
-    generateRandomNotification();
+    generateRandomNotification()
 
     // Set up timer for notifications every 10 minutes
-    const timer = setInterval(generateRandomNotification, 10 * 60 * 1000);
-    notificationTimer.current = timer;
+    const timer = setInterval(generateRandomNotification, 10 * 60 * 1000)
+    notificationTimer.current = timer
 
     // Cleanup on unmount
     return () => {
       if (notificationTimer.current) {
-        clearInterval(notificationTimer.current);
+        clearInterval(notificationTimer.current)
       }
-    };
-  }, []);
+    }
+  }, [])
 
   return (
     <View style={styles.container}>
@@ -1479,23 +1632,30 @@ export default function TabOneScreen() {
           {
             width: searchAnimation.interpolate({
               inputRange: [0, 1],
-              outputRange: ['15%', '90%']
+              outputRange: ['15%', '90%'],
             }),
             position: 'absolute',
             top: 40,
             left: 10,
             zIndex: 1,
-          }
+          },
         ]}
       >
         {isSearchExpanded ? (
           <View style={styles.expandedSearch}>
-            <TouchableOpacity onPress={collapseSearch} style={styles.backButton}>
+            <TouchableOpacity
+              onPress={collapseSearch}
+              style={styles.backButton}
+            >
               <Ionicons name="arrow-back" size={24} color={COLORS.darkGreen} />
             </TouchableOpacity>
             <TextInput
               style={styles.searchInput}
-              placeholder={!startLocation ? "Enter starting point..." : "Enter destination..."}
+              placeholder={
+                !startLocation
+                  ? 'Enter starting point...'
+                  : 'Enter destination...'
+              }
               placeholderTextColor="#999"
               value={searchQuery}
               onChangeText={handleSearchInput}
@@ -1521,9 +1681,15 @@ export default function TabOneScreen() {
             <Ionicons
               name="notifications"
               size={24}
-              color={hasUnreadNotifications ? COLORS.warmGreen : COLORS.notificationGreen}
+              color={
+                hasUnreadNotifications
+                  ? COLORS.warmGreen
+                  : COLORS.notificationGreen
+              }
             />
-            {hasUnreadNotifications && <View style={styles.notificationBadge} />}
+            {hasUnreadNotifications && (
+              <View style={styles.notificationBadge} />
+            )}
           </View>
         </TouchableOpacity>
       )}
@@ -1546,6 +1712,13 @@ export default function TabOneScreen() {
           console.warn('WebView error: ', nativeEvent)
         }}
       />
+
+      <TouchableOpacity
+        style={styles.myLocationButton}
+        onPress={getCurrentLocation}
+      >
+        <Ionicons name="location" size={24} color={COLORS.white} />
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.recenterButton} onPress={recenterMap}>
         <Text style={styles.recenterButtonText}>📍</Text>
@@ -1609,8 +1782,9 @@ export default function TabOneScreen() {
                   styles.vehicleOption,
                   selectedVehicle?.vehicle === vehicle.vehicle &&
                     styles.selectedVehicleOption,
-                  routeSaved && selectedVehicle?.vehicle === vehicle.vehicle &&
-                    styles.savedVehicleOption
+                  routeSaved &&
+                    selectedVehicle?.vehicle === vehicle.vehicle &&
+                    styles.savedVehicleOption,
                 ]}
                 onPress={() => !routeSaved && selectVehicle(vehicle)}
                 disabled={routeSaved}
@@ -1671,7 +1845,10 @@ export default function TabOneScreen() {
           </ScrollView>
 
           <View style={styles.routeButtonsContainer}>
-            <TouchableOpacity style={styles.resetButton} onPress={() => setShowResetRouteModal(true)}>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => setShowResetRouteModal(true)}
+            >
               <Text style={styles.resetButtonText}>Reset Route</Text>
             </TouchableOpacity>
 
@@ -1684,7 +1861,11 @@ export default function TabOneScreen() {
               </TouchableOpacity>
             ) : routeSaved ? (
               <View style={styles.savedIndicator}>
-                <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
+                <Ionicons
+                  name="checkmark-circle"
+                  size={20}
+                  color={COLORS.white}
+                />
                 <Text style={styles.savedIndicatorText}>Route Saved</Text>
               </View>
             ) : (
@@ -1711,16 +1892,33 @@ export default function TabOneScreen() {
             <ScrollView style={styles.optionsScrollView}>
               <Text style={styles.enhancedOptionTitle}>Route Type:</Text>
               {[
-                { type: 'fastest', emoji: '⚡', description: 'Get there as quickly as possible' },
-                { type: 'cost-effective', emoji: '🍃', description: 'Save fuel and reduce emissions' },
-                { type: 'low-traffic', emoji: '🚦', description: 'Avoid congested areas and traffic jams' },
-                { type: 'long-drive', emoji: '🏞️', description: 'Enjoy a more scenic journey' }
+                {
+                  type: 'fastest',
+                  emoji: '⚡',
+                  description: 'Get there as quickly as possible',
+                },
+                {
+                  type: 'cost-effective',
+                  emoji: '🍃',
+                  description: 'Save fuel and reduce emissions',
+                },
+                {
+                  type: 'low-traffic',
+                  emoji: '🚦',
+                  description: 'Avoid congested areas and traffic jams',
+                },
+                {
+                  type: 'long-drive',
+                  emoji: '🏞️',
+                  description: 'Enjoy a more scenic journey',
+                },
               ].map((option) => (
                 <TouchableOpacity
                   key={option.type}
                   style={[
                     styles.enhancedOptionButton,
-                    selectedOptions.type === option.type && styles.enhancedSelectedOption,
+                    selectedOptions.type === option.type &&
+                      styles.enhancedSelectedOption,
                   ]}
                   onPress={() =>
                     setSelectedOptions({
@@ -1731,21 +1929,32 @@ export default function TabOneScreen() {
                   <View style={styles.optionContentRow}>
                     <Text style={styles.optionEmoji}>{option.emoji}</Text>
                     <View style={styles.optionTextContainer}>
-                      <Text style={[
-                        styles.enhancedOptionText,
-                        selectedOptions.type === option.type && styles.enhancedSelectedOptionText
-                      ]}>
+                      <Text
+                        style={[
+                          styles.enhancedOptionText,
+                          selectedOptions.type === option.type &&
+                            styles.enhancedSelectedOptionText,
+                        ]}
+                      >
                         {option.type}
                       </Text>
-                      <Text style={[
-                        styles.optionDescription,
-                        selectedOptions.type === option.type && styles.selectedOptionDescription
-                      ]}>
+                      <Text
+                        style={[
+                          styles.optionDescription,
+                          selectedOptions.type === option.type &&
+                            styles.selectedOptionDescription,
+                        ]}
+                      >
                         {option.description}
                       </Text>
                     </View>
                     {selectedOptions.type === option.type && (
-                      <Ionicons name="checkmark-circle" size={24} color={COLORS.white} style={styles.selectedIcon} />
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={24}
+                        color={COLORS.white}
+                        style={styles.selectedIcon}
+                      />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -1761,8 +1970,15 @@ export default function TabOneScreen() {
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
                     <>
-                      <Ionicons name="navigate" size={20} color="white" style={styles.buttonIcon} />
-                      <Text style={styles.enhancedFindRouteButtonText}>Find Route</Text>
+                      <Ionicons
+                        name="navigate"
+                        size={20}
+                        color="white"
+                        style={styles.buttonIcon}
+                      />
+                      <Text style={styles.enhancedFindRouteButtonText}>
+                        Find Route
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -1817,8 +2033,8 @@ export default function TabOneScreen() {
           <TouchableOpacity
             style={styles.tryAgainButton}
             onPress={() => {
-              setRouteError(false);
-              resetMapMarkers();
+              setRouteError(false)
+              resetMapMarkers()
             }}
           >
             <Text style={styles.tryAgainButtonText}>Try Another Route</Text>
@@ -1849,7 +2065,8 @@ export default function TabOneScreen() {
             </View>
 
             <Text style={styles.achievementMessage}>
-              Thank you for choosing eco-friendly transportation! You're helping to create a greener planet.
+              Thank you for choosing eco-friendly transportation! You're helping
+              to create a greener planet.
             </Text>
 
             <View style={styles.achievementStatsRow}>
@@ -1863,7 +2080,9 @@ export default function TabOneScreen() {
 
               <View style={styles.achievementStatItem}>
                 <Ionicons name="podium" size={24} color={COLORS.bark} />
-                <Text style={styles.achievementStatValue}>+{Math.round(achievementPoints/5)}</Text>
+                <Text style={styles.achievementStatValue}>
+                  +{Math.round(achievementPoints / 5)}
+                </Text>
                 <Text style={styles.achievementStatLabel}>Rank Points</Text>
               </View>
             </View>
@@ -1886,7 +2105,8 @@ export default function TabOneScreen() {
             </View>
             <Text style={styles.resetMarkersTitle}>Clear Map Markers?</Text>
             <Text style={styles.resetMarkersMessage}>
-              This will remove all markers from the map, but won't delete any saved routes.
+              This will remove all markers from the map, but won't delete any
+              saved routes.
             </Text>
             <View style={styles.resetMarkersButtons}>
               <TouchableOpacity
@@ -1899,7 +2119,9 @@ export default function TabOneScreen() {
                 style={styles.resetMarkersConfirmButton}
                 onPress={handleResetMapMarkers}
               >
-                <Text style={styles.resetMarkersConfirmText}>Clear Markers</Text>
+                <Text style={styles.resetMarkersConfirmText}>
+                  Clear Markers
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1914,7 +2136,8 @@ export default function TabOneScreen() {
             </View>
             <Text style={styles.resetRouteTitle}>Reset Route?</Text>
             <Text style={styles.resetRouteMessage}>
-              This will completely remove your current route and delete any saved route data. This action cannot be undone.
+              This will completely remove your current route and delete any
+              saved route data. This action cannot be undone.
             </Text>
             <View style={styles.resetRouteButtons}>
               <TouchableOpacity
@@ -2089,6 +2312,24 @@ const styles = StyleSheet.create({
   closeSearchButtonText: {
     color: '#333',
     fontWeight: '500',
+  },
+  myLocationButton: {
+    position: 'absolute',
+    bottom: 150,
+    right: 20,
+    backgroundColor: COLORS.leafGreen,
+    borderRadius: 30,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderWidth: 2,
+    borderColor: COLORS.white,
   },
   recenterButton: {
     position: 'absolute',
