@@ -2,25 +2,25 @@
 
 ## 🌍 Real-World Carbon Emission Data
 
-### **Transportation Carbon Footprint (kg CO2 per passenger per km)**
+### **Transportation Carbon Footprint (kg CO2 per passenger per km) - India**
 
-| Transportation Mode   | CO2 Emissions (kg/km) | Cost per km (USD) | Speed (km/h) | Efficiency Score |
-| --------------------- | --------------------- | ----------------- | ------------ | ---------------- |
-| **Walking**           | 0.0                   | $0.00             | 5            | 100%             |
-| **Cycling**           | 0.0                   | $0.00             | 15           | 100%             |
-| **Electric Bicycle**  | 0.002                 | $0.05             | 25           | 99%              |
-| **Electric Scooter**  | 0.003                 | $0.08             | 20           | 98%              |
-| **Bus (Urban)**       | 0.04                  | $0.15             | 25           | 85%              |
-| **Metro/Train**       | 0.04                  | $0.20             | 40           | 85%              |
-| **Electric Car**      | 0.05                  | $0.12             | 50           | 80%              |
-| **Hybrid Car**        | 0.08                  | $0.18             | 50           | 70%              |
-| **CNG Auto-rickshaw** | 0.12                  | $0.25             | 30           | 60%              |
-| **Conventional Car**  | 0.15                  | $0.25             | 50           | 50%              |
-| **Taxi/Uber**         | 0.18                  | $0.35             | 45           | 40%              |
-| **Motorcycle**        | 0.20                  | $0.15             | 40           | 35%              |
-| **Diesel Car**        | 0.25                  | $0.30             | 50           | 25%              |
+| Transportation Mode   | CO2 Emissions (kg/km) | Cost per km (₹) | Speed (km/h) | Efficiency Score |
+| --------------------- | --------------------- | --------------- | ------------ | ---------------- |
+| **Walking**           | 0.0                   | ₹0.00           | 5            | 100%             |
+| **Cycling**           | 0.0                   | ₹0.00           | 15           | 100%             |
+| **Electric Bicycle**  | 0.002                 | ₹2.50           | 25           | 99%              |
+| **Electric Scooter**  | 0.003                 | ₹3.00           | 20           | 98%              |
+| **Bus (Urban)**       | 0.04                  | ₹8.00           | 25           | 85%              |
+| **Metro/Train**       | 0.04                  | ₹12.00          | 40           | 85%              |
+| **Electric Car**      | 0.05                  | ₹6.00           | 50           | 80%              |
+| **Hybrid Car**        | 0.08                  | ₹9.00           | 50           | 70%              |
+| **CNG Auto-rickshaw** | 0.12                  | ₹15.00          | 30           | 60%              |
+| **Conventional Car**  | 0.15                  | ₹12.50          | 50           | 50%              |
+| **Taxi/Uber**         | 0.18                  | ₹18.00          | 45           | 40%              |
+| **Motorcycle**        | 0.20                  | ₹8.00           | 40           | 35%              |
+| **Diesel Car**        | 0.25                  | ₹15.00          | 50           | 25%              |
 
-_Source: International Energy Agency (IEA), World Bank, EPA, and transportation studies_
+_Source: International Energy Agency (IEA), World Bank, Indian Ministry of Transport, and local transportation studies_
 
 ---
 
@@ -46,25 +46,25 @@ graph TD
     end
 ```
 
-### **Graph 2: Cost vs Emissions Analysis**
+### **Graph 2: Cost vs Emissions Analysis - India**
 
 ```mermaid
 graph LR
     subgraph "Low Cost, Low Emissions"
-        A[Walking: $0.00, 0.0kg]
-        B[Cycling: $0.00, 0.0kg]
-        C[E-Bike: $0.05, 0.002kg]
+        A[Walking: ₹0.00, 0.0kg]
+        B[Cycling: ₹0.00, 0.0kg]
+        C[E-Bike: ₹2.50, 0.002kg]
     end
 
     subgraph "Medium Cost, Low Emissions"
-        D[Bus: $0.15, 0.04kg]
-        E[Metro: $0.20, 0.04kg]
-        F[E-Car: $0.12, 0.05kg]
+        D[Bus: ₹8.00, 0.04kg]
+        E[Metro: ₹12.00, 0.04kg]
+        F[E-Car: ₹6.00, 0.05kg]
     end
 
     subgraph "High Cost, High Emissions"
-        G[Taxi: $0.35, 0.18kg]
-        H[Diesel Car: $0.30, 0.25kg]
+        G[Taxi: ₹18.00, 0.18kg]
+        H[Diesel Car: ₹15.00, 0.25kg]
     end
 ```
 
@@ -72,25 +72,25 @@ graph LR
 
 ## 🚀 GoGreen App Impact Analysis
 
-### **Before GoGreen (Traditional Travel Patterns)**
+### **Before GoGreen (Traditional Travel Patterns) - India**
 
-| Scenario             | Distance (km) | Traditional Mode | CO2 Emissions (kg) | Cost (USD) | Time (min) |
-| -------------------- | ------------- | ---------------- | ------------------ | ---------- | ---------- |
-| **Daily Commute**    | 10            | Car              | 1.5                | $2.50      | 20         |
-| **Shopping Trip**    | 5             | Taxi             | 0.9                | $1.75      | 15         |
-| **Weekend Outing**   | 25            | Car              | 3.75               | $6.25      | 30         |
-| **Airport Transfer** | 30            | Taxi             | 5.4                | $10.50     | 45         |
-| **Monthly Total**    | 420           | Mixed            | 47.25              | $79.20     | 1,100      |
+| Scenario             | Distance (km) | Traditional Mode | CO2 Emissions (kg) | Cost (₹) | Time (min) |
+| -------------------- | ------------- | ---------------- | ------------------ | -------- | ---------- |
+| **Daily Commute**    | 10            | Car              | 1.5                | ₹125     | 20         |
+| **Shopping Trip**    | 5             | Auto-rickshaw    | 0.6                | ₹75      | 15         |
+| **Weekend Outing**   | 25            | Car              | 3.75               | ₹312     | 30         |
+| **Airport Transfer** | 30            | Taxi             | 5.4                | ₹540     | 45         |
+| **Monthly Total**    | 420           | Mixed            | 47.25              | ₹3,960   | 1,100      |
 
-### **After GoGreen (Optimized Travel)**
+### **After GoGreen (Optimized Travel) - India**
 
-| Scenario             | Distance (km) | GoGreen Mode    | CO2 Emissions (kg) | Cost (USD) | Time (min) |
-| -------------------- | ------------- | --------------- | ------------------ | ---------- | ---------- |
-| **Daily Commute**    | 10            | E-Bike + Metro  | 0.42               | $1.20      | 25         |
-| **Shopping Trip**    | 5             | Walking + Bus   | 0.20               | $0.75      | 20         |
-| **Weekend Outing**   | 25            | E-Car + Cycling | 0.65               | $3.00      | 35         |
-| **Airport Transfer** | 30            | Metro + E-Car   | 1.35               | $6.00      | 50         |
-| **Monthly Total**    | 420           | Optimized       | 9.74               | $29.70     | 1,200      |
+| Scenario             | Distance (km) | GoGreen Mode    | CO2 Emissions (kg) | Cost (₹) | Time (min) |
+| -------------------- | ------------- | --------------- | ------------------ | -------- | ---------- |
+| **Daily Commute**    | 10            | E-Bike + Metro  | 0.42               | ₹60      | 25         |
+| **Shopping Trip**    | 5             | Walking + Bus   | 0.20               | ₹40      | 20         |
+| **Weekend Outing**   | 25            | E-Car + Cycling | 0.65               | ₹150     | 35         |
+| **Airport Transfer** | 30            | Metro + E-Car   | 1.35               | ₹300     | 50         |
+| **Monthly Total**    | 420           | Optimized       | 9.74               | ₹1,485   | 1,200      |
 
 ---
 
@@ -119,13 +119,13 @@ graph TD
     K --> L[77% Reduction]
 ```
 
-### **Cost Savings Analysis**
+### **Cost Savings Analysis - India**
 
 ```mermaid
 graph LR
     subgraph "Monthly Transportation Costs"
-        A[Before: $79.20] --> B[After: $29.70]
-        B --> C[Savings: $49.50]
+        A[Before: ₹3,960] --> B[After: ₹1,485]
+        B --> C[Savings: ₹2,475]
         C --> D[62% Cost Reduction]
     end
 ```
@@ -134,22 +134,22 @@ graph LR
 
 ## 🌱 Environmental Impact Calculations
 
-### **Annual Impact per User**
+### **Annual Impact per User - India**
 
 | Metric                  | Before GoGreen  | After GoGreen   | Reduction       |
 | ----------------------- | --------------- | --------------- | --------------- |
 | **CO2 Emissions**       | 1,386 kg/year   | 314 kg/year     | 1,072 kg/year   |
-| **Transportation Cost** | $950/year       | $356/year       | $594/year       |
+| **Transportation Cost** | ₹47,520/year    | ₹17,820/year    | ₹29,700/year    |
 | **Carbon Footprint**    | 1.39 tonnes CO2 | 0.31 tonnes CO2 | 1.08 tonnes CO2 |
 
-### **Global Impact Potential**
+### **India Impact Potential**
 
-_Assuming 1 million GoGreen users:_
+_Assuming 1 million GoGreen users in India:_
 
 | Impact Metric     | Annual Total        | Equivalent To             |
 | ----------------- | ------------------- | ------------------------- |
 | **CO2 Reduction** | 1.08 million tonnes | 2.3 million trees planted |
-| **Cost Savings**  | $594 million        | Average household savings |
+| **Cost Savings**  | ₹29,700 crore       | Average household savings |
 | **Energy Saved**  | 4.32 billion kWh    | Powering 400,000 homes    |
 
 ---
@@ -176,48 +176,57 @@ const transportationData = {
   },
   electricBike: {
     co2: 0.002,
-    cost: 0.05,
+    cost: 2.5,
     speed: 25,
     efficiency: 99,
     health_benefits: 80,
   },
   bus: {
     co2: 0.04,
-    cost: 0.15,
+    cost: 8.0,
     speed: 25,
     efficiency: 85,
     health_benefits: 20,
   },
   metro: {
     co2: 0.04,
-    cost: 0.2,
+    cost: 12.0,
     speed: 40,
     efficiency: 85,
     health_benefits: 15,
   },
   electricCar: {
     co2: 0.05,
-    cost: 0.12,
+    cost: 6.0,
     speed: 50,
     efficiency: 80,
     health_benefits: 10,
   },
   conventionalCar: {
     co2: 0.15,
-    cost: 0.25,
+    cost: 12.5,
     speed: 50,
     efficiency: 50,
     health_benefits: 5,
   },
+  autoRickshaw: {
+    co2: 0.12,
+    cost: 15.0,
+    speed: 30,
+    efficiency: 60,
+    health_benefits: 0,
+  },
   taxi: {
     co2: 0.18,
-    cost: 0.35,
+    cost: 18.0,
     speed: 45,
     efficiency: 40,
     health_benefits: 0,
   },
 }
 ```
+
+````
 
 ### **GoGreen Optimization Algorithm**
 
@@ -252,7 +261,7 @@ const calculateOptimalRoute = (
 
   return recommendations
 }
-```
+````
 
 ---
 
@@ -264,14 +273,14 @@ const calculateOptimalRoute = (
 
 - Daily commute: 12km by car
 - Monthly CO2: 54kg
-- Monthly cost: $90
+- Monthly cost: ₹4,500
 - Time: 45 minutes daily
 
 **After GoGreen:**
 
 - Daily commute: Metro (8km) + E-bike (4km)
 - Monthly CO2: 12kg
-- Monthly cost: $36
+- Monthly cost: ₹1,800
 - Time: 50 minutes daily
 - **Impact**: 78% CO2 reduction, 60% cost savings
 
@@ -281,14 +290,14 @@ const calculateOptimalRoute = (
 
 - Campus travel: 6km by auto-rickshaw
 - Monthly CO2: 21.6kg
-- Monthly cost: $45
+- Monthly cost: ₹2,700
 - Time: 20 minutes daily
 
 **After GoGreen:**
 
 - Campus travel: Cycling + Metro
 - Monthly CO2: 2.4kg
-- Monthly cost: $12
+- Monthly cost: ₹720
 - Time: 25 minutes daily
 - **Impact**: 89% CO2 reduction, 73% cost savings
 
@@ -298,16 +307,16 @@ const calculateOptimalRoute = (
 
 - Airport transfers: 35km by taxi
 - Monthly CO2: 189kg
-- Monthly cost: $245
+- Monthly cost: ₹12,600
 - Time: 60 minutes per trip
 
 **After GoGreen:**
 
 - Airport transfers: Metro + E-car
 - Monthly CO2: 42kg
-- Monthly cost: $120
+- Monthly cost: ₹6,000
 - Time: 70 minutes per trip
-- **Impact**: 78% CO2 reduction, 51% cost savings
+- **Impact**: 78% CO2 reduction, 52% cost savings
 
 ---
 
@@ -358,15 +367,15 @@ optimized_correlation = 0.30
 
 ## 📈 Future Projections
 
-### **5-Year Impact Projection**
+### **5-Year Impact Projection - India**
 
-| Year     | Users     | CO2 Reduction (tonnes) | Cost Savings ($M) | Trees Equivalent |
-| -------- | --------- | ---------------------- | ----------------- | ---------------- |
-| **2024** | 100,000   | 108,000                | 59.4              | 1.08M trees      |
-| **2025** | 500,000   | 540,000                | 297               | 5.4M trees       |
-| **2026** | 1,000,000 | 1,080,000              | 594               | 10.8M trees      |
-| **2027** | 2,000,000 | 2,160,000              | 1,188             | 21.6M trees      |
-| **2028** | 5,000,000 | 5,400,000              | 2,970             | 54M trees        |
+| Year     | Users     | CO2 Reduction (tonnes) | Cost Savings (₹ Crore) | Trees Equivalent |
+| -------- | --------- | ---------------------- | ---------------------- | ---------------- |
+| **2024** | 100,000   | 108,000                | 297                    | 1.08M trees      |
+| **2025** | 500,000   | 540,000                | 1,485                  | 5.4M trees       |
+| **2026** | 1,000,000 | 1,080,000              | 2,970                  | 10.8M trees      |
+| **2027** | 2,000,000 | 2,160,000              | 5,940                  | 21.6M trees      |
+| **2028** | 5,000,000 | 5,400,000              | 14,850                 | 54M trees        |
 
 ### **Market Penetration Analysis**
 
@@ -387,10 +396,11 @@ graph TD
 
 1. **International Energy Agency (IEA)** - Global transportation emissions
 2. **World Bank** - Cost analysis and economic impact
-3. **Environmental Protection Agency (EPA)** - US-specific data
-4. **Transport for London** - Urban transportation metrics
-5. **Indian Ministry of Transport** - Local transportation data
-6. **Academic Studies** - Peer-reviewed research papers
+3. **Indian Ministry of Transport** - Local transportation data and costs
+4. **Delhi Metro Rail Corporation (DMRC)** - Metro pricing and efficiency
+5. **Mumbai Metropolitan Region Development Authority (MMRDA)** - Local transport costs
+6. **Bangalore Metropolitan Transport Corporation (BMTC)** - Bus pricing data
+7. **Academic Studies** - Peer-reviewed research papers on Indian transportation
 
 ### **Calculation Methods**
 
