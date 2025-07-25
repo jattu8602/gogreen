@@ -54,10 +54,6 @@
 - **Google Generative AI** (v0.24.0) - Gemini 2.0 Flash for travel planning
 - **Custom AI Services** - Route optimization and eco-friendly recommendations
 
-### **Data Visualization & Charts**
-
-- **React Native Chart Kit** (v6.12.0) - Data visualization
-- **React Native Calendars** (v1.1310.0) - Calendar components
 
 ### **UI Components & Styling**
 
