@@ -361,7 +361,7 @@ const calculateGreenPoints = (
 - **API Integrations**: 5+ external services
 - **Platform Support**: iOS, Android, Web
 - **Development Time**: 6+ months
-- **Team Size**: 1-3 developers
+- **Team Size**: 10-12 developers
 
 ---
 
