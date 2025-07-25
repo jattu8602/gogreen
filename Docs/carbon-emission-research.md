@@ -226,11 +226,11 @@ const transportationData = {
 }
 ```
 
-````
+
 
 ### **GoGreen Optimization Algorithm**
 
-```typescript
+```
 const calculateOptimalRoute = (
   distance: number,
   constraints: {
@@ -261,7 +261,7 @@ const calculateOptimalRoute = (
 
   return recommendations
 }
-````
+```
 
 ---
 
