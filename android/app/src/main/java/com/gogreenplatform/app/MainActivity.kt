@@ -1,4 +1,4 @@
-package com.gogreen.app
+package com.gogreenplatform.app
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

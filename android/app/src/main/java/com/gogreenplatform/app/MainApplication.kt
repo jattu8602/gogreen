@@ -1,4 +1,4 @@
-package com.gogreen.app
+package com.gogreenplatform.app
 
 import android.app.Application
 import android.content.res.Configuration

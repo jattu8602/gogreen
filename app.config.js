@@ -15,14 +15,14 @@ module.exports = {
   assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.gogreen.app',
+    bundleIdentifier: 'com.gogreenplatform.app',
   },
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#ffffff',
     },
-    package: 'com.gogreen.app',
+    package: 'com.gogreenplatform.app',
     permissions: [],
   },
   web: {

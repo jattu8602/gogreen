@@ -28,7 +28,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="gogreen"/>
-        <data android:scheme="com.gogreen.app"/>
+        <data android:scheme="com.gogreenplatform.app"/>
         <data android:scheme="exp+gogreen"/>
       </intent-filter>
     </activity>
