@@ -33,10 +33,8 @@ import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
 import {
   generateTravelPlan,
-  findNearbyPlaces,
   TravelPlan,
-  NearbyPlace,
-} from '../services/geminiService'
+} from '../services/openAiService'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import MapView, { Marker, Polyline } from 'react-native-maps'
 import { useUser } from '@clerk/clerk-expo'
@@ -132,9 +130,16 @@ export default function TravelPlannerScreen() {
       if (result.travelPlan) {
         setTravelPlan(result.travelPlan)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error planning trip:', error)
-      Alert.alert('Error', 'Failed to plan trip. Please try again.')
+      if (error.message?.includes('429') || error.toString().includes('429') || error.message?.includes('quota')) {
+        Alert.alert(
+          'Daily Limit Reached',
+          'You have reached the free usage limit for AI travel planning. Please try again in a few minutes.'
+        )
+      } else {
+        Alert.alert('Error', 'Failed to plan trip. Please try again.')
+      }
     } finally {
       setLoading(false)
     }

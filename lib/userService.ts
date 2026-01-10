@@ -26,6 +26,8 @@ export interface UserData {
   profile_url?: string
   green_score: number
   rank?: number
+  isAdmin?: boolean  // Admin role flag
+  createdAt?: string // Account creation timestamp
 }
 
 /**
@@ -163,6 +165,8 @@ export const createOrUpdateUser = async (
         username: userData.username || '',
         profile_url: userData.profile_url || undefined,
         green_score: userData.green_score || 0,
+        isAdmin: userData.isAdmin || false,
+        createdAt: userData.createdAt || new Date().toISOString(),
       }
 
       console.log(`Creating new user ${userData.id} with data:`, newUser);

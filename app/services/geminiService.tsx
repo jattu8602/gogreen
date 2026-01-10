@@ -66,104 +66,148 @@ export type RoutePlan = {
 }
 
 // Function to generate a travel plan using Gemini
+// Improved with fallback logic and configuration
 export async function generateTravelPlan(
   city: string,
   duration: number,
   budget: string,
   travelers: string
 ): Promise<{ text: string; travelPlan?: TravelPlan }> {
-  try {
-    // Create a prompt for the Gemini API
-    const prompt = `
-      Create a budget-conscious travel plan for ${duration} days in ${city} for ${travelers} traveler(s) with a maximum budget of ${budget}.
-      Include:
-      1. A day-by-day itinerary with specific activities and times
-      2. Activities suitable for the group size (${travelers} people)
-      3. Detailed cost breakdown for each activity, staying within ${budget} total
-      4. Transportation costs and modes between locations
-      5. Mix of free and paid activities
-      6. Budget-friendly accommodation options
-      7. Affordable local food recommendations
-      8. Eco-friendly tips specific to the destination
-      9. Include local public transport where available
-      10 plan budget according to the budget. person who is spending more recommend luxury and person who is spending less recommend budget places.
+  // Configuration for generation to control output and consistency
+  const generationConfig = {
+    temperature: 0.7,
+    topP: 0.8,
+    topK: 40,
+    maxOutputTokens: 2048,
+  };
 
-      Format the response as a JSON object with the following structure:
-      {
-        "city": "${city}",
-        "duration": "${duration} days",
-        "budget": "${budget}",
-        "travelers": "${travelers}",
-        "ecoFriendlyTips": ["tip1", "tip2", "tip3", "tip4", "tip5"],
-        "itinerary": [
-          {
-            "day": 1,
-            "activities": [
-              {
-                "time": "HH:MM",
-                "activity": "description",
-                "ecoFriendly": true/false,
-                "cost": "exact cost",
-                "type": "accommodation/food/activity/transport",
-                "transportInfo": {
-                  "mode": "bus/train/taxi/walk",
-                  "duration": "X mins/hours",
-                  "cost": "exact cost"
-                }
+  const prompt = `
+    Create a budget-conscious travel plan for ${duration} days in ${city} for ${travelers} traveler(s) with a maximum budget of ${budget}.
+    Include:
+    1. A day-by-day itinerary with specific activities and times
+    2. Activities suitable for the group size (${travelers} people)
+    3. Detailed cost breakdown for each activity, staying within ${budget} total
+    4. Transportation costs and modes between locations
+    5. Mix of free and paid activities
+    6. Budget-friendly accommodation options
+    7. Affordable local food recommendations
+    8. Eco-friendly tips specific to the destination
+    9. Include local public transport where available
+    10 plan budget according to the budget. person who is spending more recommend luxury and person who is spending less recommend budget places.
+
+    Format the response as a JSON object with the following structure:
+    {
+      "city": "${city}",
+      "duration": "${duration} days",
+      "budget": "${budget}",
+      "travelers": "${travelers}",
+      "ecoFriendlyTips": ["tip1", "tip2", "tip3", "tip4", "tip5"],
+      "itinerary": [
+        {
+          "day": 1,
+          "activities": [
+            {
+              "time": "HH:MM",
+              "activity": "description",
+              "ecoFriendly": true/false,
+              "cost": "exact cost",
+              "type": "accommodation/food/activity/transport",
+              "transportInfo": {
+                "mode": "bus/train/taxi/walk",
+                "duration": "X mins/hours",
+                "cost": "exact cost"
               }
-            ],
-            "dailyTotal": "total cost for the day"
-          }
-        ],
-        "totalCost": "total trip cost",
-        "transportationTotal": "total transportation cost"
-      }
+            }
+          ],
+          "dailyTotal": "total cost for the day"
+        }
+      ],
+      "totalCost": "total trip cost",
+      "transportationTotal": "total transportation cost"
+    }
 
-      Make sure to:
-      1. Keep total costs under the specified budget of ${budget}
-      2. Include transportation costs between all locations
-      3. Suggest budget-friendly transport options
-      4. Include local public transport where available
-      5. Account for group size in transport costs
-      6. Consider peak/off-peak timing for transport
-      7. Include walking for short distances
-      8. Add transport duration estimates
+    Make sure to:
+    1. Keep total costs under the specified budget of ${budget}
+    2. Include transportation costs between all locations
+    3. Suggest budget-friendly transport options
+    4. Include local public transport where available
+    5. Account for group size in transport costs
+    6. Consider peak/off-peak timing for transport
+    7. Include walking for short distances
+    8. Add transport duration estimates
 
-      For transportation between locations:
-      1. Specify the mode of transport
-      2. Include the cost per person/group
-      3. Estimate the duration
-      4. Prefer eco-friendly options when available
-      5. Consider local transport passes or day tickets
-      6. Include waiting/buffer time in schedules
+    For transportation between locations:
+    1. Specify the mode of transport
+    2. Include the cost per person/group
+    3. Estimate the duration
+    4. Prefer eco-friendly options when available
+    5. Consider local transport passes or day tickets
+    6. Include waiting/buffer time in schedules
 
-      Ensure all costs (activities, accommodation, food, and transport) stay within the specified budget.
-    `
+    Ensure all costs (activities, accommodation, food, and transport) stay within the specified budget.
+  `
 
-    // Generate content using Gemini
-    const result = await model.generateContent(prompt)
+  try {
+    // Try with primary model (gemini-2.0-flash)
+    console.log('Generating travel plan with primary model (gemini-2.0-flash)...')
+    /*
+       Note: We use the existing 'model' instance which is configured for 2.0-flash
+       but we can pass generationConfig to generateContent if supported,
+       or re-instantiate model with config.
+       The SDK pattern is usually getGenerativeModel with config.
+       Let's create a configured model instance here dynamically or assume standard defaults.
+       For correct config, we should re-initialize.
+    */
+    const primaryModel = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      generationConfig
+    });
+
+    const result = await primaryModel.generateContent(prompt)
     const response = await result.response
     const text = response.text()
+    return parseTravelPlanResponse(text)
 
-    // Extract the JSON part from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (jsonMatch) {
+  } catch (error: any) {
+    console.error('Error with primary model:', error.message)
+
+    // Fallback to gemini-1.5-flash if 429 or 404
+    if (error.message?.includes('429') || error.message?.includes('404')) {
       try {
-        const travelPlan = JSON.parse(jsonMatch[0]) as TravelPlan
-        return { text, travelPlan }
-      } catch (error) {
-        console.error('Error parsing travel plan JSON:', error)
-        return { text }
+        console.log('Falling back to gemini-1.5-flash...')
+        const fallbackModel = genAI.getGenerativeModel({
+          model: 'gemini-1.5-flash',
+          generationConfig
+        });
+
+        const result = await fallbackModel.generateContent(prompt)
+        const response = await result.response
+        const text = response.text()
+        return parseTravelPlanResponse(text)
+      } catch (fallbackError) {
+        console.error('Error with fallback model:', fallbackError)
+        // If fallback also fails, throw specific error for UI to handle
+        throw error // Throw the ORIGINAL error (likely 429) so UI shows "Quota Limit"
       }
     }
 
-    return { text }
-  } catch (error) {
-    console.error('Error generating travel plan:', error)
-    return {
-      text: `I'm sorry, I couldn't generate a travel plan for ${city} at the moment. Please try again later.`,
+    throw error // Throw other errors
+  }
+}
+
+// Helper to parse response
+function parseTravelPlanResponse(text: string): { text: string; travelPlan?: TravelPlan } {
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  if (jsonMatch) {
+    try {
+      const travelPlan = JSON.parse(jsonMatch[0]) as TravelPlan
+      return { text, travelPlan }
+    } catch (error) {
+      console.error('Error parsing travel plan JSON:', error)
+      return { text }
     }
   }
+  return { text }
 }
 
 // Function to generate a route plan between two locations

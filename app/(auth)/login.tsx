@@ -10,20 +10,46 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native'
-import { useSignIn } from '@clerk/clerk-expo'
+import { useSignIn, useOAuth } from '@clerk/clerk-expo'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { StatusBar } from 'expo-status-bar'
+import * as WebBrowser from 'expo-web-browser'
 import { ThemedText } from '@/components/ThemedText'
 import { ThemedView } from '@/components/ThemedView'
 
+// Warm up the browser for OAuth
+WebBrowser.maybeCompleteAuthSession()
+
 export default function LoginScreen() {
   const { signIn, isLoaded, setActive } = useSignIn()
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      const { createdSessionId, setActive } = await startOAuthFlow()
+
+      if (createdSessionId) {
+        await setActive!({ session: createdSessionId })
+        router.replace('/(tabs)')
+      } else {
+        setError('Google sign-in was incomplete')
+      }
+    } catch (err: any) {
+      console.error('OAuth error', err)
+      setError(err.errors?.[0]?.message || 'Failed to sign in with Google')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSignIn = async () => {
     if (!isLoaded) return
@@ -64,12 +90,15 @@ export default function LoginScreen() {
     <ThemedView style={styles.container}>
       <StatusBar style="auto" />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'position' : 'height'}
         style={styles.keyboardAvoid}
+        keyboardVerticalOffset={0}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
         >
           <View style={styles.logoContainer}>
             <Image
@@ -135,7 +164,10 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.forgotPassword}>
+          <TouchableOpacity
+            style={styles.forgotPassword}
+            onPress={() => router.push('/(auth)/forgot-password')}
+          >
             <ThemedText style={styles.forgotPasswordText}>
               Forgot Password?
             </ThemedText>
@@ -161,7 +193,8 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             style={styles.googleButton}
-            // Note: Social providers would require additional setup with Clerk
+            onPress={handleGoogleSignIn}
+            disabled={loading}
           >
             <Image
               source={require('@/assets/images/google.png')}
@@ -196,7 +229,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 20,
-    justifyContent: 'center',
+    paddingTop: 60,
+    paddingBottom: 40,
   },
   logoContainer: {
     alignItems: 'center',
